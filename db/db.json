@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1,
+        "user": {
+            "name": "John Doe",
+            "profileImage": "https://example.com/profile1.jpg",
+            "headline": "Software Engineer at XYZ"
+        },
+        "content": "Excited to share my latest project on React!",
+        "media": "https://example.com/post-image.jpg",
+        "likes": 120,
+        "comments": [
+            {
+                "user": "Jane Smith",
+                "comment": "Great work! Looking forward to more updates."
+            },
+            {
+                "user": "Mike Johnson",
+                "comment": "This is really insightful!"
+            }
+        ],
+        "timestamp": "2025-05-20T14:30:00Z"
+    },
+    {
+        "id": 2,
+        "user": {
+            "name": "Alice Brown",
+            "profileImage": "https://example.com/profile2.jpg",
+            "headline": "Product Manager at ABC Corp"
+        },
+        "content": "Just attended an amazing tech conference!",
+        "media": null,
+        "likes": 85,
+        "comments": [],
+        "timestamp": "2025-05-19T10:15:00Z"
+    }
+]
