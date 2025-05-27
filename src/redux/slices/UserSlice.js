@@ -9,7 +9,7 @@ export const createUser = createAsyncThunk(
     console.log("data", data);
 
     try {
-      const response = await fetch(`${appConfig.ip}/auth/register`, {
+      const response = await fetch(`${appConfig.ip}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -39,23 +39,23 @@ export const showUser = createAsyncThunk(
     let response;
     data.role !== ""
       ? (response = await fetch(
-          `${appConfig.ip}/admin/get-all-users?keyword=${data.keyword}&role=${data.role}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        ))
+        `${appConfig.ip}/admin/get-all-users?keyword=${data.keyword}&role=${data.role}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      ))
       : (response = await fetch(
-          `${appConfig.ip}/admin/get-all-users?keyword=&role=`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        ));
+        `${appConfig.ip}/admin/get-all-users?keyword=&role=`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      ));
 
     try {
       const result = await response.json();
@@ -328,8 +328,8 @@ export const userDetail = createSlice({
       .addCase(getProf.fulfilled, (state, action) => {
         state.loading = false;
         state.currentUser = action.payload.ourUsers;
-        if(action.payload.ourUsers){
-        localStorage.setItem("id", action.payload.ourUsers?.id);
+        if (action.payload.ourUsers) {
+          localStorage.setItem("id", action.payload.ourUsers?.id);
         }
       })
       .addCase(getProf.rejected, (state, action) => {

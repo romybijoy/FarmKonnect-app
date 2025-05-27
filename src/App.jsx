@@ -33,6 +33,7 @@ function App() {
           <Route path="verifyotp" element={<VerifyOtp />} />
           <Route path="/forgotPassword" element={<ForgotPassword />} />
           <Route path="set-Password" element={<ResetPassword />} />
+          <Route path="/signup" element={<Register />} />
           {/* <Route exact path="/404" name="Page 404" element={<Page404 />} />
           <Route exact path="/500" name="Page 500" element={<Page500 />} /> */}
           <Route
