@@ -1,0 +1,14 @@
+@media (min-width: 992px) {
+    .loginContainer {
+        max-width: 960px;
+        padding-bottom: 47px !important;
+    }
+}
+
+
+@media (min-width: 992px) {
+    .otpContainer {
+        max-width: 960px;
+        padding-bottom: 230px !important;
+    }
+}

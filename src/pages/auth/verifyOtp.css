@@ -1,0 +1,23 @@
+.countdown-text {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 24px 0px;
+  }
+  
+  .countdown-text > p {
+    font-size: 13px;
+    font-weight: 400;
+    color: #2D1D35;
+  }
+  
+  .countdown-text > button {
+    background-color: #fff;
+    border: none;
+    color: #FE5B00;
+    font-weight: 500;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  
