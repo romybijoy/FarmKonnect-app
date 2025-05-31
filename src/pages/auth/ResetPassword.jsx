@@ -7,7 +7,7 @@ import { useLoginMutation } from "../../redux/slices/UsersApiSlice";
 import { toast } from "react-toastify";
 import { resetPassword } from "../../redux/slices/UserSlice";
 
-import "../../styles/verifyOtp.css";
+import "./verifyOtp.css";
 
 const ResetPassword = () => {
 

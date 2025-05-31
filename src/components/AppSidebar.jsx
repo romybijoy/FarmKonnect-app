@@ -6,12 +6,13 @@ import { IoReorderThreeOutline } from "react-icons/io5";
 import { logout } from "../redux/slices/AuthSlice";
 
 import { UserAuth } from "../context/AuthContext";
+import { useDispatch } from "react-redux";
 
 function Sidebar() {
   const [showDropdown, setShowDropdown] = useState(false);
   const { user, logOut, currentPath } = UserAuth();
   const navigate = useNavigate();
-
+  const dispatch = useDispatch()
   function handleClick() {
     setShowDropdown(!showDropdown);
   }
@@ -60,7 +61,9 @@ function Sidebar() {
               <i className="sidemenu_icons bi bi-bell-fill"></i>Notifications
             </div>
             <div className="sidemenu">
+              <NavLink to="/addPost" className="link-clean">
               <i className="sidemenu_icons bi bi-plus-square"></i>Create
+              </NavLink>
             </div>
             <div className="sidemenu">
               <i className="sidemenu_icons bi bi-people-fill"></i>Groups
@@ -78,12 +81,13 @@ function Sidebar() {
             <div className="position-fixed">
               {showDropdown && (
                 <div className="shadow">
-                  <p
+                  <button
+
                     onClick={handleLogout}
                     className="py-2 fs-6 px-4 border-top border-bottom cursor-pointer"
                   >
                     Log out
-                  </p>
+                  </button>
                 </div>
               )}
             </div>
