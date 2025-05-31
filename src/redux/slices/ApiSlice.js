@@ -5,7 +5,7 @@ const baseQuery = fetchBaseQuery({ baseUrl: appConfig.ip });
 
 export const ApiSlice = createApi({
   baseQuery,
-  tagTypes: ["User", "Product", "Cart", "Order", "Review"],
+  tagTypes: ["User", "Post"],
   endpoints: (builder) => ({
     
   }),
