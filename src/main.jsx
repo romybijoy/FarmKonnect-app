@@ -1,49 +1,20 @@
-// import { StrictMode } from 'react'
-// import { createRoot } from 'react-dom/client'
-// import './index.css'
-// import App from './App.jsx'
-// import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-// import ViewStory from './ViewStory.jsx'
-// import Profile from './Profile.jsx'
-// // import GroupPage from './GroupPage.jsx'
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { Provider } from "react-redux";
 
+import "bootstrap/dist/css/bootstrap.min.css";
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
-// const router =createBrowserRouter([
-//   {
-//     path: '/',
-//     element: <App/>
-//   },
-//   {
-//     path: '/story',
-//     element: <ViewStory/>
-//   },
-//   {
-//     path: '/profile',
-//     element: <Profile/>
-//   },
-// ])
-// createRoot(document.getElementById('root')).render(
-//   <RouterProvider router={router}/>
-//     // <GroupPage />
-    
-// )
+import "./index.css";
+import store from "./redux/store";
+import { AuthContextProvider } from "./context/AuthContext";
 
-import React from 'react'
-import { createRoot } from 'react-dom/client'
-import { Provider } from 'react-redux'
-// import 'core-js'
-// import 'react-datepicker/dist/react-datepicker.css'
+const App = React.lazy(() => import("./App"));
 
-
-import store from './redux/store'
-import { AuthContextProvider } from './context/AuthContext'
-
-const App = React.lazy(() => import('./App'));
-
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById("root")).render(
   <Provider store={store}>
     <AuthContextProvider>
-    <App />
+      <App />
     </AuthContextProvider>
-  </Provider>,
-)
+  </Provider>
+);

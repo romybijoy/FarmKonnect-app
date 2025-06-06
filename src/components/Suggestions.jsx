@@ -1,67 +1,67 @@
-import React, { useState } from 'react'
-import prof1 from '../assets/prof1.jpeg'
-import prof2 from '../assets/prof4.jpeg'
-import prof3 from '../assets/prof2.jpeg'
-import prof4 from '../assets/prof3.jpeg'
-import '../index.css'
+import React, { useState } from 'react';
+import prof1 from '../assets/prof1.jpeg';
+import prof2 from '../assets/prof4.jpeg';
+import prof3 from '../assets/prof2.jpeg';
+import prof4 from '../assets/prof3.jpeg';
 
 function Suggestions() {
-    const [suggestion, setSuggestion] =useState([
-        {
-            id: 1,
-            user: "John Doe",
-            img: prof1,
-            status: "Follows you"
-        },
-        {
-            id: 2,
-            user: "Alice Bow",
-            img: prof2,
-            status: "Followed by Regha"
-        },
-        {
-            id: 3,
-            user: "Manoj",
-            img: prof3,
-            status: "Follows you"
-        },
-        {
-            id: 2,
-            user: "Albin Joe",
-            img: prof4,
-            status: "Follows you"
-        },
-    ]);
+  const [suggestion, setSuggestion] = useState([
+    {
+      id: 1,
+      user: 'John Doe',
+      img: prof1,
+      status: 'Follows you',
+    },
+    {
+      id: 2,
+      user: 'Alice Bow',
+      img: prof2,
+      status: 'Followed by Regha',
+    },
+    {
+      id: 3,
+      user: 'Manoj',
+      img: prof3,
+      status: 'Follows you',
+    },
+    {
+      id: 4,
+      user: 'Albin Joe',
+      img: prof4,
+      status: 'Follows you',
+    },
+  ]);
+
   return (
-    <div className='suggestions w-75 m-4'>
-      <div className='d-flex'>
-        <p>Suggestions for you</p>
-        <b className='ms-auto'>See All</b>
+    <div className="w-full max-w-md mx-auto p-4 bg-white shadow rounded-xl mt-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm font-semibold text-gray-700">Suggestions for you</p>
+        <button className="text-sm text-blue-500 hover:underline">See All</button>
       </div>
       {suggestion.length > 0 ? (
-      <div>
-        {suggestion.map((suggestion) => (
-            <div key={suggestion.id}>
-                <div className='d-flex'>
-                    <img src={suggestion.img} alt="Profile" className="sugn_picture rounded-circle"/>
-                    <div className='profile-info'>
-                        <p className='user'>{suggestion.user}</p>
-                        <p className='profile-status'>{suggestion.status}</p>
-                    </div>
-                    <b className='connect text-primary ms-auto'>Connect</b>
+        <div className="space-y-4">
+          {suggestion.map((item) => (
+            <div key={item.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={item.img}
+                  alt="Profile"
+                  className="w-10 h-10 rounded-full object-cover border"
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{item.user}</p>
+                  <p className="text-xs text-gray-500">{item.status}</p>
                 </div>
               </div>
-        ))}
-        
-      </div>
-
-      ): (
-        <div>
-            Loading
-      </div>
+              <button className="text-sm text-blue-500 font-semibold hover:underline">Connect</button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-gray-500 text-sm">Loading...</p>
       )}
     </div>
-  )
+  );
 }
 
-export default Suggestions
+export default Suggestions;

@@ -1,16 +1,8 @@
+import AppSidebar from "./AppSidebar";
+import Feed from "./Feed";
+import Post from "./posts/Post";
+import Profile from "./Profile/Profile";
+import Story from "./story/Story";
+import Suggestions from "./Suggestions";
 
-import AppSidebar from './AppSidebar'
-import Feed from './Feed'
-import Post from './Post'
-import Profile from './Profile'
-import Story from './Story'
-import Suggestions from './Suggestions'
-
-export {
-  Feed,
-  AppSidebar,
-  Post,
-  Profile,
-  Story,
-  Suggestions,
-}
+export { Feed, AppSidebar, Post, Profile, Story, Suggestions };
