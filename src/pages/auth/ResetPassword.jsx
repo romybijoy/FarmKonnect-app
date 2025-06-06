@@ -1,3 +1,4 @@
+import React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate,useLocation } from "react-router-dom";
 import { Form, Button } from "react-bootstrap";
@@ -7,33 +8,14 @@ import { useLoginMutation } from "../../redux/slices/UsersApiSlice";
 import { toast } from "react-toastify";
 import { resetPassword } from "../../redux/slices/UserSlice";
 
-import "./verifyOtp.css";
 
 const ResetPassword = () => {
-
-  const useQuery = () => new URLSearchParams(useLocation().search);
-
-  const query = useQuery();
-  const email  = query.get("email");
-
-  console.log(email)
-  // const [emailId, setEmail] = useState(email);
+  const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-
-  const [login, { isLoading }] = useLoginMutation();
-
-  const { user, error, loading } = useSelector((state) => state.app);
-
-
-
-  useEffect(() => {
-
-   
-  }, []);
-
+  
   const submitHandler = async (e) => {
     e.preventDefault();
     try {
@@ -44,51 +26,57 @@ const ResetPassword = () => {
       navigate("/verifyotp");
     }
   };
-
   return (
-    <FormContainer>
-      <h1>Reset Password</h1>
+     <div
+      className="min-vh-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-75"
+      style={{
+        backgroundImage:
+          "url('/background_img.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+    <div className="flex items-center justify-center h-screen bg-gradient-to-t from-pink-200 to-green-500 h-50">
+      {/* Card Container */}
+      <div className="bg-white/20 backdrop-blur-md p-6 rounded-lg shadow-lg w-96 text-center">
+        <h1 className="text-white text-2xl font-semibold mb-4">Reset Password</h1>
 
-      <Form>
-        <Form.Group className="my-2" controlId="email">
-          <Form.Control
-            type="email"
-            placeholder= {email}
-            value={email}
-            // onChange={(e) => setEmail(e.target.value)}
-          ></Form.Control>
-        </Form.Group>
+        {/* Email Input */}
+        <input
+          type="email"
+          placeholder="Enter Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full border border-gray-400 rounded-lg py-2 px-4 bg-white/40 text-black focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
 
-        <Form.Group className="my-2" controlId="newPassword">
-          <Form.Control
-            type="password"
+        {/* Password Input */}
+        <div className="relative mt-4">
+          <input
+            type={showPassword ? "text" : "password"}
             placeholder="Enter New Password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-          ></Form.Control>
-        </Form.Group>
-
-        {/* <div className="countdown-text">
-         
-
-          {/* Button to resend OTP */}
-        {/* <Button
-
-            style={{
-              color: "#FF5630",
-            }}
-            onClick={resendOTP}
+            className="w-full border border-gray-400 rounded-lg py-2 px-4 bg-white/40 text-black focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+          <button
+            className="absolute right-4 top-2 text-gray-600"
+            onClick={() => setShowPassword(!showPassword)}
           >
-            Resend OTP
-          </Button>
-        </div>  */}
+            {showPassword ? "🙈" : "👁"}
+          </button>
+        </div>
 
-        {/* Button to submit OTP */}
-        <Button className="submit-btn" onClick={submitHandler}>
+        {/* Submit Button */}
+        <button
+          onClick={submitHandler} style={{ backgroundColor: "#9AB106", color: "black" }}
+          className="mt-6 w-full transition-all text-white font-bold py-2 px-6 rounded-lg shadow-md"
+        >
           SUBMIT
-        </Button>
-      </Form>
-    </FormContainer>
+        </button>
+      </div>
+    </div>
+    </div>
   );
 };
 

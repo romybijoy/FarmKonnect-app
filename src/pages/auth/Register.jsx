@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { Firebase } from "../../firebase/config";
 import FormContainer from "../../components/Form/FormContainer";
-import { Alert, Button, Form, Image } from "react-bootstrap";
+import { Container, Card, Alert, Button, Form, Image } from "react-bootstrap";
 import Loader from "../../components/Loader/Loader";
 
 import { toast } from "react-toastify";
@@ -18,6 +18,7 @@ const Register = () => {
     mobile_number: "",
     role: "USER",
     image: "",
+
   });
   const [image, setImage] = useState("");
   const [validated, setValidated] = useState(false);
@@ -50,45 +51,57 @@ const Register = () => {
   };
 
   const handleSubmit = async (e) => {
-    const form = e.currentTarget;
+  e.preventDefault();
+  const form = e.currentTarget;
 
-    if (form.checkValidity() === false) {
-      e.preventDefault();
-      e.stopPropagation();
-      setValidated(true);
+  if (!form.checkValidity()) {
+    e.stopPropagation();
+    setValidated(true);
+    return;
+  }
+
+  try {
+    console.log(formData);
+
+    const res = await dispatch(createUser(formData)); // wait for the response
+
+    // Clear the form
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      mobile_number: "",
+      image: "",
+    });
+
+    if (res.payload?.status === 409) {
+      setValError("User with email already exists !!!");
+    } else if (res.payload && !res.payload.error) {
+      toast.success("User registered successfully, verify otp");
+      navigate("/verifyotp");
     } else {
-      try {
-        e.preventDefault();
-        console.log(formData);
-
-        dispatch(createUser(formData));
-        // Clear the form fields after successful registration
-        setFormData({
-          name: "",
-          email: "",
-          password: "",
-          mobile_number: "",
-          image: "",
-        });
-
-        if (error === Number(409)) {
-          setValError("User with email already exists !!!");
-        } else if (!Object.is(message, null)) {
-          toast.success("User registered successfully, verify otp");
-          navigate("/verifyotp");
-        } else {
-          setValError("Something went wrong");
-        }
-      } catch (err) {
-        setValError(err);
-      }
+      setValError("Something went wrong");
     }
-  };
+  } catch (err) {
+    console.error(err);
+    setValError("Error submitting form");
+  }
+};
+
 
   return (
-    <FormContainer className="p-3">
-      <h1>Registration</h1>
-      <br />
+    <div
+      className="min-vh-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-75"
+      style={{
+        backgroundImage:
+          "url('/background_img.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+    <Container className="d-flex justify-content-center">
+           <Card style={{ maxWidth: '600px', width: '100%' }} className="p-4 shadow flex items-center justify-center h-screen bg-gradient-to-t from-pink-200 to-green-500 h-50">
+             <h2 className="text-center mb-4">Create an account</h2>
       {valError && <Alert variant="danger">{valError}</Alert>}
       <Form noValidate validated={validated} onSubmit={handleSubmit}>
         <Form.Group className="my-2" controlId="name">
@@ -153,42 +166,11 @@ const Register = () => {
           </Form.Control.Feedback>
         </Form.Group>
 
-        {/* <Form.Group className="my-2" controlId="role">
-          <Form.Label>Role</Form.Label>
-          <Form.Select
-            aria-label="Role"
-            name="role"
-            // value={formData.role}
-            onChange={handleInputChange}
-          >
-            <option>Select..</option>
-            <option value="ADMIN">Admin</option>
-            <option value="USER">User</option>
-          </Form.Select>
-        </Form.Group> */}
-
+      
         <Form.Group className="my-2" controlId="image">
           <Form.Label>Profile Image</Form.Label>
           <br />
-          {/* <Image
-            alt=""
-            width="200px"
-            height="200px"
-            src={
-              image ? (
-                formData.image === "" ? (
-                  <p>Loading...</p>
-                ) : (
-                  URL.createObjectURL(image)
-                )
-              ) : (
-                ""
-              )
-            } 
-          ></Image> */}
-
-          <br />
-          {/* <input type="file" name="image" onChange={handleImageChange} /> */}
+         
           <Form.Control
             type="file"
             // accept="image/*"
@@ -218,7 +200,9 @@ const Register = () => {
           Submit
         </Button>
       </Form>
-    </FormContainer>
+        </Card>
+      </Container>
+      </div>
   );
 };
 
