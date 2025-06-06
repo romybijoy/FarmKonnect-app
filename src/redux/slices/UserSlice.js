@@ -2,6 +2,8 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { appConfig } from "../../config";
 
 const token = localStorage.getItem("token");
+
+const ip = `${appConfig.ip}/user`;
 //create action
 export const createUser = createAsyncThunk(
   "createUser",
@@ -9,7 +11,7 @@ export const createUser = createAsyncThunk(
     console.log("data", data);
 
     try {
-      const response = await fetch(`${appConfig.ip}/register`, {
+      const response = await fetch(`${ip}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -39,7 +41,7 @@ export const showUser = createAsyncThunk(
     let response;
     data.role !== ""
       ? (response = await fetch(
-        `${appConfig.ip}/admin/get-all-users?keyword=${data.keyword}&role=${data.role}`,
+        `${ip}/get-all-users?keyword=${data.keyword}&role=${data.role}`,
         {
           method: "GET",
           headers: {
@@ -70,7 +72,7 @@ export const showUser = createAsyncThunk(
 export const deleteUser = createAsyncThunk(
   "deleteUser",
   async (id, { rejectWithValue }) => {
-    const response = await fetch(`${appConfig.ip}/admin/delete/${id}`, {
+    const response = await fetch(`${ip}/delete/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -93,7 +95,7 @@ export const updateUser = createAsyncThunk(
   "updateUser",
   async (data, { rejectWithValue }) => {
     console.log("updated data", data);
-    const response = await fetch(`${appConfig.ip}/admin/update/${data.id}`, {
+    const response = await fetch(`${ip}/update/${data.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -115,7 +117,7 @@ export const updateUser = createAsyncThunk(
 export const fetchUserById = createAsyncThunk(
   "fetchUserById",
   async (id, { rejectWithValue }) => {
-    const response = await fetch(`${appConfig.ip}/admin/get-users/${id}`, {
+    const response = await fetch(`${ip}/get-users/${id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -136,11 +138,10 @@ export const fetchUserById = createAsyncThunk(
 export const getProf = createAsyncThunk(
   "getProf",
   async (arg, { rejectWithValue }) => {
-    const response = await fetch(`${appConfig.ip}/adminuser/get-profile`, {
+    const response = await fetch(`${ip}/get-profile/${arg.email}`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
       },
     });
 
@@ -160,7 +161,7 @@ export const verifyOTP = createAsyncThunk(
   async (data, { rejectWithValue }) => {
     console.log("otp data", data);
     const response = await fetch(
-      `${appConfig.ip}/auth/verify-account?email=${data.email}&otp=${data.otp}`,
+      `${ip}/auth/verify-account?email=${data.email}&otp=${data.otp}`,
       {
         method: "PUT",
         headers: {
@@ -184,7 +185,7 @@ export const regenerateOTP = createAsyncThunk(
   async (data, { rejectWithValue }) => {
     console.log("updated data", data);
     const response = await fetch(
-      `${appConfig.ip}/auth/regenerate-otp?email=${data.email}`,
+      `${ip}/auth/regenerate-otp?email=${data.email}`,
       {
         method: "PUT",
         headers: {
@@ -209,7 +210,7 @@ export const forgotPassword = createAsyncThunk(
     try {
       console.log("forgot-password data", data);
       const response = await fetch(
-        `${appConfig.ip}/auth/forgot-password?email=${data.email}`,
+        `${ip}/auth/forgot-password?email=${data.email}`,
         {
           method: "PUT",
           headers: {
@@ -234,7 +235,7 @@ export const resetPassword = createAsyncThunk(
     try {
       console.log("set-password data", data);
       const response = await fetch(
-        `${appConfig.ip}/auth/set-password?email=${data.email}&newPassword=${data.newPassword}`,
+        `${ip}/auth/set-password?email=${data.email}&newPassword=${data.newPassword}`,
         {
           method: "PUT",
           headers: {
@@ -251,6 +252,26 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+//block status
+export const showBlockStatus = createAsyncThunk('showBlockStatus', async ( data, { rejectWithValue }) => {
+  console.log(data)
+  let response
+  response = await fetch(`${ip}/auth/${data.email}/block-status`, {
+    method: 'GET',
+    // headers: {
+    //   Authorization: `Bearer ${token}`,
+    // },
+  })
+
+  try {
+    const result = await response.json()
+    console.log(result)
+    return result
+  } catch (error) {
+    return rejectWithValue(error)
+  }
+})
+
 export const userDetail = createSlice({
   name: "app",
   initialState: {
@@ -259,6 +280,7 @@ export const userDetail = createSlice({
     error: null,
     user: "",
     searchData: [],
+    data:null,
     message: null,
     currentUser: null,
   },
@@ -327,9 +349,10 @@ export const userDetail = createSlice({
       })
       .addCase(getProf.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentUser = action.payload.ourUsers;
-        if (action.payload.ourUsers) {
-          localStorage.setItem("id", action.payload.ourUsers?.id);
+        state.currentUser = action.payload;
+        if (action.payload) {
+          console.log(action.payload)
+          localStorage.setItem("myInfo", JSON.stringify(action.payload));
         }
       })
       .addCase(getProf.rejected, (state, action) => {
@@ -379,6 +402,17 @@ export const userDetail = createSlice({
       .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
+      })
+      .addCase(showBlockStatus.pending, (state) => {
+        state.loading = true
+      })
+      .addCase(showBlockStatus.fulfilled, (state, action) => {
+        state.loading = false
+        state.data = action.payload
+      })
+      .addCase(showBlockStatus.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
       });
   },
 });

@@ -4,14 +4,14 @@ export const UsersApiSlice = ApiSlice.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation({
       query: (data) => ({
-        url: "/auth/login",
+        url: "/user/auth/login",
         method: "POST",
         body: data,
       }),
     }),
     getprof: builder.mutation({
       query: (token) => ({
-        url: "/adminuser/get-profile",
+        url: "/user/auth/get-profile",
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       }),

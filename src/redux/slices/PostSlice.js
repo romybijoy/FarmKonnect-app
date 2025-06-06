@@ -3,28 +3,38 @@ import { appConfig } from "../../config";
 
 const token = localStorage.getItem("token");
 
+const ip = `${appConfig.ip}/api`;
+
+const userData = JSON.parse(localStorage.getItem("myInfo"));
+
 export const createPost = createAsyncThunk(
   "createPost",
-  async (data, { rejectWithValue, fulfillWithValue, dispatch }) => {
-    console.log("data", data);
+  async (data, { rejectWithValue, fulfillWithValue }) => {
+    console.log(data)
+    const input = {
+      content: data.content,
+      postImage: data.image, // this should be a Firebase URL string
+      email: userData?.email
+    };
 
     try {
-      const response = await fetch(`${appConfig.ip}/post`, {
+      const response = await fetch(`${ip}/post/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(input),
       });
+
       if (!response.ok) {
         return rejectWithValue(response.status);
       }
 
       const result = await response.json();
-      dispatch(showPost({ page: 0, pageSize: 5 }));
       return fulfillWithValue(result);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return rejectWithValue(error);
     }
   }
@@ -32,34 +42,31 @@ export const createPost = createAsyncThunk(
 
 
 //read action
-// export const showPost = createAsyncThunk(
-//   "showPost",
-//   async (data, { rejectWithValue }) => {
-//     console.log(data);
-//     let response;
-//     try{
-//       response = await fetch(
-//           `${appConfig.ip}/post?pageNumber=${data.page}&pageSize=${data.pageSize}`,
-//           {
-//             method: "GET",
-//             headers: {
-//               Authorization: `Bearer ${token}`,
-//             },
-//           }
-//         )
-//         if (response.status !== 302) {
-//           return rejectWithValue(response.json());
-//         }
-  
-    
-//       const result = await response.json();
-//       // console.log(result);
-//       return result;
-//     } catch (error) {
-//       return rejectWithValue(error);
-//     }
-//   }
-// );
+export const showPost = createAsyncThunk(
+  "showPost",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${ip}/post/get`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return rejectWithValue(errorData);
+      }
+
+      const result = await response.json();
+      console.log(result);
+      return result;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
 
 // export const showPostByKeyword = createAsyncThunk('showPostByKeyword', async (data, { rejectWithValue }) => {
 //   console.log(data.page)
@@ -85,7 +92,6 @@ export const createPost = createAsyncThunk(
 //     return rejectWithValue(error)
 //   }
 // })
-
 
 // //update action
 // export const fetchPostById = createAsyncThunk(
@@ -164,7 +170,7 @@ export const postDetail = createSlice({
     loading: false,
     error: null,
     searchData: [],
-    count:0
+    count: 0,
   },
 
   reducers: {
@@ -176,31 +182,30 @@ export const postDetail = createSlice({
 
   extraReducers: (builder) => {
     builder
-      
-    .addCase(createPost.pending, (state) => {
-      state.loading = true;
-    })
-    .addCase(createPost.fulfilled, (state, action) => {
-      state.loading = false;
-      // state.categories.push(action.payload);
-    })
-    .addCase(createPost.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload;
-    })
-    //   .addCase(showPost.pending, (state) => {
-    //     state.loading = true;
-    //   })
-    //   .addCase(showPost.fulfilled, (state, action) => {
-    //     state.loading = false;
-    //     state.categories = action.payload.content;
-    //     state.count = action.payload.totalElements;
-    //   })
-    //   .addCase(showPost.rejected, (state, action) => {
-    //     state.loading = false;
-    //     state.categories = [];
-    //     state.error = action.payload.message;
-    //   })
+
+      .addCase(createPost.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(createPost.fulfilled, (state, action) => {
+        state.loading = false;
+        // state.categories.push(action.payload);
+      })
+      .addCase(createPost.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(showPost.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(showPost.fulfilled, (state, action) => {
+        state.loading = false;
+        state.posts = action.payload;
+      })
+      .addCase(showPost.rejected, (state, action) => {
+        state.loading = false;
+        state.posts = [];
+        state.error = action.payload.message;
+      });
     //   .addCase(showPostByKeyword.pending, (state) => {
     //     state.loading = true;
     //   })
@@ -255,4 +260,4 @@ export const postDetail = createSlice({
 
 export default postDetail.reducer;
 
-export const {  } = postDetail.actions;
+export const {} = postDetail.actions;
