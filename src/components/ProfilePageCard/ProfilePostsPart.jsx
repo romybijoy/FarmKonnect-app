@@ -1,166 +1,101 @@
 import React, { useEffect, useState } from "react";
-import { BsBookmark } from "react-icons/bs";
-import { GrTable } from "react-icons/gr";
-import { RiVideoFill, RiVideoLine } from "react-icons/ri";
-import { BiBookmark, BiUserPin } from "react-icons/bi";
 import { AiOutlineTable, AiOutlineUser } from "react-icons/ai";
-import ReqUserPostCard from "./ReqUserPostCard";
-import { useDispatch, useSelector } from "react-redux";
+import { RiVideoLine } from "react-icons/ri";
+import { BiBookmark } from "react-icons/bi";
 
-import prof1 from "../../assets/prof1.jpeg";
-import prof2 from "../../assets/prof4.jpeg";
-import prof3 from "../../assets/prof2.jpeg";
-import prof4 from "../../assets/prof3.jpeg";
-// import { reqUserPostAction, savePostAction } from "../../Redux/Post/Action";
-// import {reqUserPostAction} from "../../Redux/Post/Action.js"
+import Post from "../posts/Post";
+import Followers from "../profileTabs/followers/Followers";
+import Following from "../profileTabs/following/Following";
+import Groups from "../profileTabs/groups/Groups";
 
-const ProfilePostsPart = ({ user }) => {
+const ProfilePostsPart = ({ user, post }) => {
   const [activeTab, setActiveTab] = useState("Post");
-  // const { post} = useSelector((store) => store);
-  const token = localStorage.getItem("token");
-  const dispatch = useDispatch();
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      user: {
-        id: 1,
-        username: "John Doe",
-        img: prof1,
-      },
-      img: prof2,
-    },
-    {
-      id: 2,
-      user: {
-        id: 2,
-        username: "John Doe",
-        img: prof1,
-      },
-      img: prof3,
-    },
-    {
-      id: 3,
-      user: {
-        id: 3,
-        username: "John Doe",
-        img: prof1,
-      },
-      img: prof1,
-    },
-    {
-      id: 4,
-      user: {
-        id: 4,
-        username: "John Doe",
-        img: prof1,
-      },
-      img: prof1,
-    },
-  ]);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    setLoading(true);
+
+    setTimeout(() => {
+      switch (activeTab) {
+        case "Post":
+          setData([
+            { id: 1, content: "Post 1" },
+            { id: 2, content: "Post 2" },
+          ]);
+          break;
+        case "Followers":
+          setData([]); // simulate no followers
+          break;
+        case "Following":
+          setData([{ id: 1, name: "User A" }]);
+          break;
+        case "Groups":
+          setData([]); // simulate no groups
+          break;
+        default:
+          setData([]);
+      }
+      setLoading(false);
+    }, 500);
+  }, [activeTab, user?.id]);
+
+  const renderComponent = () => {
+    switch (activeTab) {
+      case "Post":
+        return <Post data={post} />;
+      case "Followers":
+        return <Followers data={data} />;
+      case "Following":
+        return <Following data={data} />;
+      case "Groups":
+        return <Groups data={data} />;
+      default:
+        return null;
+    }
+  };
+
+  const renderNoData = (label) => (
+    <div className="flex flex-col items-center justify-center text-center py-10 text-gray-500">
+      <span className="text-4xl mb-2">📭</span>
+      <p className="text-sm font-medium">No {label} found</p>
+    </div>
+  );
 
   const tabs = [
-    {
-      tab: "Post",
-      icon: <AiOutlineTable className="text-xs" />,
-      activeTab: "",
-    },
-    {
-      tab: "Followers",
-      icon: <RiVideoLine className="text-xs" />,
-      activeTab: "",
-    },
-    {
-      tab: "Following",
-      icon: <BiBookmark className="text-xs" />,
-      activeTab: "",
-    },
-    {
-      tab: "Groups",
-      icon: <AiOutlineUser className="text-xs" />,
-      activeTab: "",
-    },
+    { tab: "Post", icon: <AiOutlineTable /> },
+    { tab: "Followers", icon: <RiVideoLine /> },
+    { tab: "Following", icon: <BiBookmark /> },
+    { tab: "Groups", icon: <AiOutlineUser /> },
   ];
 
-  // useEffect(() => {
-  //   const data = {
-  //     jwt: token,
-  //     userId: user?.id,
-  //   };
-  //   // dispatch(reqUserPostAction(data));
-  // }, [user,post.createdPost]);
-
   return (
-    <div className="">
-      <div className="flex space-x-14 border-t relative ">
+    <div className="p-4 w-full">
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-6 border-t border-gray-200 py-3">
         {tabs.map((item) => (
-          <div
+          <button
+            key={item.tab}
             onClick={() => setActiveTab(item.tab)}
-            className={`${
-              item.tab === activeTab ? "border-t border-black" : "opacity-60"
-            } flex items-center cursor-pointer py-2 text-sm`}
+            className={`flex items-center gap-2 text-sm md:text-base px-3 py-1 border-b-2 transition-all duration-300 ${
+              activeTab === item.tab
+                ? "border-blue-500 text-blue-600 font-semibold"
+                : "border-transparent text-gray-500 hover:text-blue-500"
+            }`}
           >
-            <p>{item.icon}</p>
-
-            <p className="ml-1 text-xs">{item.tab} </p>
-          </div>
+            {item.icon}
+            <span>{item.tab}</span>
+          </button>
         ))}
       </div>
-      <div>
-        {posts.length > 0 ? (
-          posts.map((post) => (
-            <div key={post.id} className="mx-1">
-              <div className="post-container">
-                <div className="post-header">
-                  <img
-                    src={post.user.img}
-                    alt="Profile"
-                    className="profile-picture rounded-circle"
-                  />
-                  <div className="post-info">
-                    <h6>{post.user.username}</h6>
-                    <p className="post_desc">
-                      {"gdsgfdg dgghgh"} <br />
-                      {"April 2 at 2:13 PM"}
-                    </p>
-                  </div>
-                  <div className="right_icons">
-                    <div>
-                      <i className="bi bi-three-dots mr-5"></i>
-                    </div>
-                    <div>
-                      <i className="bi bi-x"></i>
-                    </div>
-                  </div>
-                </div>
-                <div className="post-content">
-                  <p>{"Hello"}</p>
-                </div>
 
-                <div className="post-counts">
-                  <div className="w-70">23 likes</div>
-                  <div className="w-15">60 comments</div>
-                  <div className="w-15">19 reposts</div>
-                </div>
-                <hr />
-                <div className="post-interactions">
-                  <div className="like-button">
-                    <i className="post_icons bi bi-hand-thumbs-up"></i>Like
-                  </div>
-                  <div className="comment-button">
-                    <i className="post_icons bi bi-chat-left-text"></i>Comment
-                  </div>
-                  <div className="repost-button">
-                    <i className="post_icons bi bi-arrow-repeat"></i>Repost
-                  </div>
-                  <div className="send-button">
-                    <i className="post_icons bi bi-send"></i>Send
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
+      {/* Content */}
+      <div className="mt-4 min-h-[200px]">
+        {loading ? (
+          <p className="text-center text-gray-500 py-6">Loading...</p>
         ) : (
-          <p>Loading</p>
+          renderComponent()
         )}
       </div>
     </div>
