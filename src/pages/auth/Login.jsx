@@ -177,12 +177,11 @@ const LoginScreen = () => {
                     isInvalid={validated && password.length < 4}
                   ></Form.Control>
                   <Form.Control.Feedback type="invalid">
-                    Password must be at least 8 characters and contain a digit,
-                    a lower-case, an upper-case letter, and a special
-                    character
+                    Password must be at least 8 characters and contain a digit,a
+                    lower-case, an upper-case letter, and a special character
                   </Form.Control.Feedback>
                 </Form.Group>
-               
+
                 <div className="flex justify-end mb-3">
                   <Link
                     to="/forgotPassword"

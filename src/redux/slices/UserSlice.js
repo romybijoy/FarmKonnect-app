@@ -34,40 +34,34 @@ export const createUser = createAsyncThunk(
 );
 
 //read action
-export const showUser = createAsyncThunk(
-  "showUser",
-  async (data, { rejectWithValue }) => {
-    console.log(data.keyword);
-    let response;
-    data.role !== ""
-      ? (response = await fetch(
-        `${ip}/get-all-users?keyword=${data.keyword}&role=${data.role}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      ))
-      : (response = await fetch(
-        `${appConfig.ip}/admin/get-all-users?keyword=&role=`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      ));
 
+export const showUser = createAsyncThunk(
+  "user/showUser",
+  async (_, thunkAPI) => {
     try {
+      const response = await fetch(
+        `${ip}/get-all-users?enabled=true&role=USER&pageNumber=0&pageSize=30`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const errorData = await response.json();
+        return thunkAPI.rejectWithValue(errorData);
+      }
+
       const result = await response.json();
-      console.log(result);
       return result;
     } catch (error) {
-      return rejectWithValue(error);
+      return thunkAPI.rejectWithValue({ message: error.message || "Unexpected error" });
     }
   }
 );
+
 //delete action
 export const deleteUser = createAsyncThunk(
   "deleteUser",
@@ -91,24 +85,49 @@ export const deleteUser = createAsyncThunk(
 );
 
 //update action
+// export const updateUser = createAsyncThunk(
+//   "updateUser",
+//   async (data, { rejectWithValue }) => {
+//     console.log("updated data", data);
+//     const response = await fetch(`${ip}/update/${data.id}`, {
+//       method: "PUT",
+//       headers: {
+//         "Content-Type": "application/json",
+//         Authorization: `Bearer ${token}`,
+//       },
+//       body: JSON.stringify(data),
+//     });
+
+//     try {
+//       const result = await response.json();
+//       return result;
+//     } catch (error) {
+//       return rejectWithValue(error);
+//     }
+//   }
+// );
+
 export const updateUser = createAsyncThunk(
   "updateUser",
-  async (data, { rejectWithValue }) => {
-    console.log("updated data", data);
-    const response = await fetch(`${ip}/update/${data.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
-
+  async ({ userId, data }, { rejectWithValue }) => {
     try {
+      const response = await fetch(`/update/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return rejectWithValue(errorData);
+      }
+
       const result = await response.json();
       return result;
-    } catch (error) {
-      return rejectWithValue(error);
+    } catch (err) {
+      return rejectWithValue({ message: err.message });
     }
   }
 );
@@ -204,26 +223,26 @@ export const regenerateOTP = createAsyncThunk(
 );
 
 //forgot-password action
-export const forgotPassword = createAsyncThunk(
-  "forgotPassword",
-  async (data, { rejectWithValue }) => {
+export const forgotPassword = createAsyncThunk("forgotPassword",
+  async ({ email }, { rejectWithValue }) => {
     try {
-      console.log("forgot-password data", data);
-      const response = await fetch(
-        `${ip}/auth/forgot-password?email=${data.email}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch(`${ip}/auth/forgot-password?email=${email}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       const result = await response.json();
 
+      if (!response.ok) {
+        // If the response has a meaningful message, return that
+        return rejectWithValue(result.message || "Failed to send reset link.");
+      }
+
       return result;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue(error.message || "Network error.");
     }
   }
 );
@@ -233,7 +252,6 @@ export const resetPassword = createAsyncThunk(
   "resetPassword",
   async (data, { rejectWithValue }) => {
     try {
-      console.log("set-password data", data);
       const response = await fetch(
         `${ip}/auth/set-password?email=${data.email}&newPassword=${data.newPassword}`,
         {
@@ -286,9 +304,9 @@ export const userDetail = createSlice({
   },
 
   reducers: {
-    searchUser: (state, action) => {
-      console.log(action.payload);
-      state.searchData = action.payload;
+   
+    setUsers: (state, action) => {
+      state.users = action.payload.content;
     },
   },
 
@@ -313,7 +331,7 @@ export const userDetail = createSlice({
       })
       .addCase(showUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload.ourUsersList;
+        state.users = action.payload.content;
       })
       .addCase(showUser.rejected, (state, action) => {
         state.loading = false;
@@ -333,16 +351,18 @@ export const userDetail = createSlice({
 
       .addCase(updateUser.pending, (state) => {
         state.loading = true;
+        state.error = null;
+        state.success = false;
       })
       .addCase(updateUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = state.users.map((ele) =>
-          ele.id === action.payload.id ? action.payload : ele
-        );
+        state.currentUser = action.payload;
+        state.success = true;
       })
       .addCase(updateUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload.message;
+        state.error = action.payload?.message || "Something went wrong";
+        state.success = false;
       })
       .addCase(getProf.pending, (state) => {
         state.loading = true;
@@ -419,4 +439,4 @@ export const userDetail = createSlice({
 
 export default userDetail.reducer;
 
-export const { searchUser } = userDetail.actions;
+export const { setUsers } = userDetail.actions;

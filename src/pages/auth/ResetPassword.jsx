@@ -10,10 +10,14 @@ import { resetPassword } from "../../redux/slices/UserSlice";
 
 
 const ResetPassword = () => {
-  const [email, setEmail] = useState("");
+  
+ const useQuery = () => new URLSearchParams(useLocation().search);
+
+  const query = useQuery();
+  const [email, setEmail] = useState(query.get("email"));
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
+  const dispatch = useDispatch(); 
   const navigate = useNavigate();
   
   const submitHandler = async (e) => {
