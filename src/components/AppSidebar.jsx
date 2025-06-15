@@ -1,100 +1,206 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { NavLink } from "react-router-dom";
-import "../index.css";
+import React, { useEffect, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { IoReorderThreeOutline } from "react-icons/io5";
+import {
+  BiHomeAlt,
+  BiMessageDetail,
+  BiUserCircle,
+  BiLogOut,
+} from "react-icons/bi";
+import { FaSearch, FaBell, FaUsers, FaPlusSquare } from "react-icons/fa";
 import { logout } from "../redux/slices/AuthSlice";
-
 import { UserAuth } from "../context/AuthContext";
 import { useDispatch } from "react-redux";
+import { ConfirmModal } from "../components/index";
 
 function Sidebar() {
   const [showDropdown, setShowDropdown] = useState(false);
-  const { user, logOut, currentPath } = UserAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { user, logOut } = UserAuth();
   const navigate = useNavigate();
-  const dispatch = useDispatch()
-  function handleClick() {
-    setShowDropdown(!showDropdown);
-  }
+  const dispatch = useDispatch();
 
-  const handleLogout = async () => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to logout this user?"
-    );
-    if (confirmDelete) {
-      if (user != null) {
-        try {
-          await logOut();
-        } catch (error) {
-          console.log(error);
-        }
+  const toggleDropdown = () => setShowDropdown(!showDropdown);
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // const handleLogout = async () => {
+  //   const confirmDelete = window.confirm("Are you sure you want to logout?");
+  //   if (confirmDelete && user != null) {
+  //     try {
+  //       await logOut();
+  //       dispatch(logout());
+  //       navigate("/");
+  //     } catch (error) {
+  //       console.error(error);
+  //     }
+  //   }
+  // };
+
+  const confirmLogout = () => setShowLogoutModal(true);
+
+  const performLogout = async () => {
+    if (user != null) {
+      try {
+        await logOut();
+      } catch (error) {
+        console.error(error);
       }
+    }
+    dispatch(logout());
+    navigate("/");
+    setShowLogoutModal(false);
+  };
 
-      dispatch(logout());
-      navigate("/");
+  const handleNavClick = () => {
+    if (window.innerWidth < 768) {
+      setIsMobileMenuOpen(false);
     }
   };
 
-  return (
-    <div className="m-4">
-      <div className="d-flex flex-column gap-4">
-        {/* <div className='logo-text'><b> FarmKonnect</b>
-                
-            </div> */}
-        <aside className="sidebar fixed-bottom">
-          <div className="logo-img">
-            <img align="start" src="logoo.png" width={90} height={100} />
-          </div>
-          <div className="mt-10">
-            <div className="sidemenu">
-              <NavLink to="/home" className="link-clean">
-                <i className="sidemenu_icons bi bi-house-door"></i> Home
-              </NavLink>
-            </div>
-            <div className="sidemenu">
-              <i className="sidemenu_icons bi bi-search"></i>Search
-            </div>
-            <div className="sidemenu">
-              <i className="sidemenu_icons bi bi-chat-dots"></i>Messages
-            </div>
-            <div className="sidemenu">
-              <i className="sidemenu_icons bi bi-bell-fill"></i>Notifications
-            </div>
-            <div className="sidemenu">
-              <NavLink to="/addPost" className="link-clean">
-              <i className="sidemenu_icons bi bi-plus-square"></i>Create
-              </NavLink>
-            </div>
-            <div className="sidemenu">
-              <i className="sidemenu_icons bi bi-people-fill"></i>Groups
-            </div>
-            <div className="sidemenu">
-              <NavLink to="/profile" className="link-clean">
-                <i className="sidemenu_icons bi bi-person-circle"></i>Profile
-              </NavLink>
-            </div>
-          </div>
-          <div className="relative">
-            <div onClick={handleClick} className="sidemenu">
-              <i className="sidemenu_icons bi bi-list"></i>More
-            </div>
-            <div className="position-fixed">
-              {showDropdown && (
-                <div className="shadow">
-                  <button
+  const navItemClasses = ({ isActive }) =>
+    `flex items-center gap-4 px-4 py-3 rounded-md transition-all duration-150 ${
+      isActive
+        ? "bg-green-100 text-green-700 font-medium no-underline"
+        : "text-gray-700 hover:bg-gray-100 no-underline"
+    }`;
 
-                    onClick={handleLogout}
-                    className="py-2 fs-6 px-4 border-top border-bottom cursor-pointer"
-                  >
-                    Log out
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
+  return (
+    <>
+      {/* Mobile Header */}
+
+      <div className="md:hidden justify-between items-center px-4 py-3 shadow bg-white sticky top-0 z-20">
+        <img src="logoo.png" alt="logo" className="h-10 w-10" />
+        <button onClick={toggleMobileMenu}>
+          <IoReorderThreeOutline size={26} />
+        </button>
       </div>
-    </div>
+
+      {/* Sidebar */}
+      <aside
+        className={`
+    bg-white shadow-lg h-full w-64 z-30
+    transform transition-transform duration-300 ease-in-out
+    fixed top-0 left-0
+    ${
+      isMobile
+        ? isMobileMenuOpen
+          ? "translate-x-0"
+          : "-translate-x-full"
+        : "md:translate-x-0 md:static md:block"
+    }
+  
+  `}
+      >
+        {" "}
+        <div className="flex flex-col h-full justify-between p-4">
+          {/* Close Button - Mobile Only */}
+          <div className="justify-end md:hidden mb-2">
+            <button
+              onClick={toggleMobileMenu}
+              className="text-gray-600 hover:text-gray-900 p-2"
+            >
+              &#10005;
+            </button>
+          </div>
+          {/* Top Section */}
+          <div>
+            <div className="flex justify-center mb-6">
+              <img src="logoo.png" alt="logo" className="h-20" />
+            </div>
+
+            <nav className="space-y-1">
+              <NavLink
+                to="/home"
+                className={navItemClasses}
+                onClick={handleNavClick}
+              >
+                <BiHomeAlt className="text-xl" />
+                Home
+              </NavLink>
+              <div className="flex items-center gap-4 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100">
+                <FaSearch className="text-lg" />
+                Search
+              </div>
+              <NavLink
+                to="/chat"
+                className={navItemClasses}
+                onClick={handleNavClick}
+              >
+                <BiMessageDetail className="text-xl" />
+                Messages
+              </NavLink>
+              <div className="flex items-center gap-4 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100">
+                <FaBell className="text-lg" />
+                Notifications
+              </div>
+              <NavLink
+                to="/addPost"
+                className={navItemClasses}
+                onClick={handleNavClick}
+              >
+                <FaPlusSquare className="text-xl" />
+                Create
+              </NavLink>
+              <div className="flex items-center gap-4 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100">
+                <FaUsers className="text-lg" />
+                Groups
+              </div>
+              <NavLink
+                to="/profile"
+                className={navItemClasses}
+                onClick={handleNavClick}
+              >
+                <BiUserCircle className="text-xl" />
+                Profile
+              </NavLink>
+            </nav>
+          </div>
+
+          {/* Bottom Section */}
+          <div className="border-t pt-4">
+            <div
+              onClick={toggleDropdown}
+              className="flex items-center gap-4 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer"
+            >
+              <i className="bi bi-list text-xl" />
+              More
+            </div>
+
+            {showDropdown && (
+              <div className="mt-2 bg-white rounded shadow">
+                <button
+                  onClick={confirmLogout}
+                  className="w-full text-left px-4 py-2 hover:bg-red-100 text-red-600 flex items-center gap-2"
+                >
+                  <BiLogOut className="text-lg" />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        {showLogoutModal && (
+          <ConfirmModal
+            title="Confirm Logout"
+            message="Are you sure you want to logout?"
+            onConfirm={performLogout}
+            onCancel={() => setShowLogoutModal(false)}
+          />
+        )}
+      </aside>
+    </>
   );
 }
 

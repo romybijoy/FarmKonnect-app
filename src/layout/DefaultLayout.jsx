@@ -6,16 +6,14 @@ import AppContent from "../components/AppContent";
 
 const DefaultLayout = () => {
   return (
-   
-      <div className="d-flex vh-100">
-        <div className="w-20">
-          <AppSidebar />
-        </div>
-        <div className="body flex-grow-1">
-          <ToastContainer />
-          <AppContent />
-        </div>
+    <div className="flex min-h-screen">
+      
+        <AppSidebar />
+      <div className="flex-growflex-grow md:ml-64 w-full">
+        <ToastContainer />
+        <AppContent />
       </div>
+    </div>
   );
 };
 
