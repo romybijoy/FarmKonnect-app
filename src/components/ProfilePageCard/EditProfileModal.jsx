@@ -1,26 +1,35 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Modal, Button, Form, Image } from "react-bootstrap";
+import { Camera } from "lucide-react";
+import { Firebase } from "../../firebase/config";
+import { useDispatch } from "react-redux";
+import { updateUser } from "../../redux/slices/UserSlice"; 
+import { toast } from "react-toastify";
 
 const EditProfileModal = ({ show, handleClose, user, onSave }) => {
   const [formData, setFormData] = useState({
-    name: "",
-    username: "",
-    bio: "",
-    profileImage: "",
+    userName: "",
+    email: "",
+    mobile_number: "",
+    description: "",
+    district: "",
+    image: "",
   });
 
-  const [previewImage, setPreviewImage] = useState(user?.profileImage || "");
+  const [previewImage, setPreviewImage] = useState(user?.image || "");
   const fileInputRef = useRef(null);
-
+const dispatch = useDispatch();
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || "",
-        username: user.username || "",
-        bio: user.bio || "",
-        profileImage: user.profileImage || "",
+        userName: user.name || "",
+        email: user.email || "",
+        mobile_number: user.mobile_number || "",
+        description: user.description || "",
+        district: user.district || "",
+        image: user.image || "",
       });
-      setPreviewImage(user.profileImage);
+      setPreviewImage(user.image);
     }
   }, [user]);
 
@@ -31,6 +40,41 @@ const EditProfileModal = ({ show, handleClose, user, onSave }) => {
       [name]: value,
     }));
   };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const storageRef = Firebase.storage().ref(`/image/user/${file.name}`);
+
+    storageRef
+      .put(file)
+      .then((snapshot) => {
+        return snapshot.ref.getDownloadURL();
+      })
+      .then((url) => {
+        setPreviewImage(url);
+        setFormData((prev) => ({
+          ...prev,
+          image: url,
+        }));
+        console.log("Firebase Image URL:", url);
+      })
+      .catch((error) => {
+        console.error("Error uploading image:", error);
+      });
+  };
+
+  // const handleFileChange = (e) => {
+  //   const file = e.target.files[0];
+  //   if (!file) return;
+
+  //   const imageUrl = URL.createObjectURL(file);
+  //   setPreviewImage(imageUrl);
+
+  //   // Pass to parent for upload
+  //   onImageChange && onImageChange(file);
+  // };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -44,10 +88,15 @@ const EditProfileModal = ({ show, handleClose, user, onSave }) => {
     }));
   };
 
-  const handleSubmit = () => {
-    onSave(formData);
+  const handleSubmit = async () => {
+  try {
+    await dispatch(updateUser({data: formData, userId: user.id})).unwrap();
+    toast.success("Profile updated!");
     handleClose();
-  };
+  } catch (err) {
+    toast.error("Failed to update profile!");
+  }
+};
 
   return (
     <Modal show={show} onHide={handleClose} centered>
@@ -66,18 +115,17 @@ const EditProfileModal = ({ show, handleClose, user, onSave }) => {
               style={{ objectFit: "cover", border: "3px solid #ccc" }}
             />
             <div
+              className="absolute bottom-1 right-1 bg-black bg-opacity-60 p-1.5 rounded-full cursor-pointer hover:bg-opacity-80 transition"
               onClick={() => fileInputRef.current.click()}
-              className="position-absolute bottom-0 end-0 bg-dark text-white rounded-circle p-1 cursor-pointer"
-              style={{ fontSize: "0.7rem" }}
             >
-              ✎
+              <Camera className="w-4 h-4 text-white" />
             </div>
-            <Form.Control
+            <input
               type="file"
               accept="image/*"
-              className="d-none"
+              className="hidden"
               ref={fileInputRef}
-              onChange={handleImageChange}
+              onChange={handleFileChange}
             />
           </div>
         </div>
@@ -88,30 +136,48 @@ const EditProfileModal = ({ show, handleClose, user, onSave }) => {
             <Form.Control
               type="text"
               name="name"
-              value={formData.name}
+              value={formData.userName}
               onChange={handleChange}
               placeholder="Your name"
             />
           </Form.Group>
-
-          <Form.Group className="mb-3" controlId="formUsername">
-            <Form.Label>Username</Form.Label>
+          <Form.Group className="mb-3" controlId="formEmail">
+            <Form.Label>Email</Form.Label>
             <Form.Control
               type="text"
-              name="username"
-              value={formData.username}
+              name="email"
+              value={formData.email}
               onChange={handleChange}
-              placeholder="Your username"
+              placeholder="Your Email"
             />
           </Form.Group>
-
-          <Form.Group className="mb-3" controlId="formBio">
+          <Form.Group className="mb-3" controlId="formMobile">
+            <Form.Label>Mobile Number</Form.Label>
+            <Form.Control
+              type="text"
+              name="mobile_number"
+              value={formData.mobile_number}
+              onChange={handleChange}
+              placeholder="Your Mobile Number"
+            />
+          </Form.Group>
+          <Form.Group className="mb-3" controlId="formDistrict">
+            <Form.Label>District</Form.Label>
+            <Form.Control
+              type="text"
+              name="district"
+              value={formData.district}
+              onChange={handleChange}
+              placeholder="Your District"
+            />
+          </Form.Group>
+          <Form.Group className="mb-3" controlId="formDescription">
             <Form.Label>Bio</Form.Label>
             <Form.Control
               as="textarea"
               rows={3}
-              name="bio"
-              value={formData.bio}
+              name="description"
+              value={formData.description}
               onChange={handleChange}
               placeholder="Tell us about yourself"
             />

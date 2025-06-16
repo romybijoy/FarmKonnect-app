@@ -10,10 +10,9 @@ import { showPost } from "../../redux/slices/PostSlice";
 
 const Profile = () => {
   const dispatch = useDispatch();
-  const currentUser = JSON.parse(localStorage.getItem("userInfo"));
+  const currentUser = JSON.parse(localStorage.getItem("myInfo"));
   const { username } = useParams();
-  const { user } = useSelector((store) => store);
-
+  // const { user } = useSelector((store) => store);
   // const isRequser=isReqUser(user.reqUser?.id,user.findByUsername?.id);
   // const isFollowed=isFollowing(user.reqUser,user.findByUsername);
   // console.log(user)
@@ -25,7 +24,6 @@ const Profile = () => {
     dispatch(showPost());
   }, [dispatch]);
   
-  console.log(currentUser);
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-3">
@@ -35,11 +33,11 @@ const Profile = () => {
             <UserDetailCard
               user={currentUser}
               isCurrentUser={true} // only show Edit Profile if this is the logged-in user
-              onEditProfile={() => console.log("Open edit modal or route")}
-              onImageChange={(file) => {
-                console.log("Image selected:", file);
-                // Upload logic here
-              }}
+              // onEditProfile={() => console.log("Open edit modal or route")}
+              // onImageChange={(file) => {
+              //   console.log("Image selected:", file);
+              //   // Upload logic here
+              // }}
             />
           </div>
         </div>

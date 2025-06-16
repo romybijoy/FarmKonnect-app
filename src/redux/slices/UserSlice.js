@@ -111,7 +111,7 @@ export const updateUser = createAsyncThunk(
   "updateUser",
   async ({ userId, data }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/update/${userId}`, {
+      const response = await fetch(`${ip}/update/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -357,6 +357,7 @@ export const userDetail = createSlice({
       .addCase(updateUser.fulfilled, (state, action) => {
         state.loading = false;
         state.currentUser = action.payload;
+        localStorage.setItem("myInfo", JSON.stringify(action.payload));
         state.success = true;
       })
       .addCase(updateUser.rejected, (state, action) => {
