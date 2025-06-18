@@ -29,7 +29,7 @@ const ProfilePostsPart = ({ user, post }) => {
           setData([]); // simulate no followers
           break;
         case "Following":
-          setData([{ id: 1, name: "User A" }]);
+          setData([]);
           break;
         case "Groups":
           setData([]); // simulate no groups
@@ -46,9 +46,9 @@ const ProfilePostsPart = ({ user, post }) => {
       case "Post":
         return <Post data={post} />;
       case "Followers":
-        return <Followers data={data} />;
+        return <Followers profileUserId={user.id} viewerId={user.id} />;
       case "Following":
-        return <Following data={data} />;
+        return <Following profileUserId={user.id} viewerId={user.id} />;
       case "Groups":
         return <Groups data={data} />;
       default:
