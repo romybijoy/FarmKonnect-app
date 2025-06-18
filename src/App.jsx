@@ -1,6 +1,13 @@
 import React, { Suspense, useEffect } from "react";
-import { BrowserRouter, Route, Routes, Navigate, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import {
+  BrowserRouter,
+  Route,
+  Routes,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { showUser, setUsers } from "./redux/slices/UserSlice";
 
 import "./App.css";
 
@@ -17,8 +24,25 @@ const ForgotPassword = React.lazy(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("./pages/auth/ResetPassword"));
 // const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 // const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
+
+import VideoCallPage from "./components/call/VideoCallPage"; // update path as needed
+
+import ChatApp from "./components/chat/ChatApp";
+
 function App() {
-  
+  const dispatch = useDispatch();
+
+  // preload user list
+  useEffect(() => {
+    const cachedUsers = localStorage.getItem("userList");
+    if (cachedUsers) {
+      dispatch(setUsers(JSON.parse(cachedUsers)));
+    } else {
+      dispatch(showUser()).then((res) => {
+        localStorage.setItem("userList", JSON.stringify(res.payload.content));
+      });
+    }
+  }, [dispatch]);
 
   return (
     <BrowserRouter future={{ v7_startTransition: true }}>
@@ -36,6 +60,9 @@ function App() {
           <Route exact path="/forgotPassword" element={<ForgotPassword />} />
           <Route exact path="set-Password" element={<ResetPassword />} />
           <Route exact path="/signup" element={<Register />} />
+
+          <Route path="/call" element={<VideoCallPage />} />
+
           {/* <Route exact path="/404" name="Page 404" element={<Page404 />} />
           <Route exact path="/500" name="Page 500" element={<Page500 />} /> */}
           <Route
