@@ -1,18 +1,11 @@
-import React from 'react';
+import React from "react";
 import { Spinner } from "react-bootstrap";
 
 const Loader = () => {
   return (
-    <Spinner
-      animation="border"
-      role="status"
-      style={{
-        width: "100px",
-        height: "100px",
-        margin: "auto",
-        display: "block",
-      }}
-    ></Spinner>
+    <div className="flex justify-center items-center h-full w-full">
+      <div className="w-12 h-12 border-4 border-blue-500 border-dashed rounded-full animate-spin"></div>
+    </div>
   );
 };
 
