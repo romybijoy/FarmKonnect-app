@@ -173,3 +173,17 @@
   text-decoration: none;
   color: inherit;
 }
+
+
+
+
+/* story pause */
+
+@keyframes story-progress {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}

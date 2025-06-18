@@ -7,12 +7,18 @@ const Login = React.lazy(() => import('./pages/auth/Login'))
 
 const AddPost = React.lazy(() => import('./components/Post/AddPost'))
 
+const ChatApp = React.lazy(() => import('./components/chat/ChatApp'))
+
+
+const AddStory  = React.lazy(() => import('./components/story/AddStory'))
+
 const routes = [
   { path: '/', exact: true, element: Login  },
   { path: '/profile', name: 'Profile', element: Profile },
   { path: '/home', name: 'Home', element: Home },
   { path: '/addPost', name: 'Home', element: AddPost },
-  // { path: '/users', name: 'Users', element: Users },
+  { path: '/chat', name: 'Users', element: ChatApp },
+  { path: '/addStory', name: 'Home', element: AddStory },
 ]
 
 export default routes
