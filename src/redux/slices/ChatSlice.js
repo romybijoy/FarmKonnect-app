@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { appConfig } from "../../config";
+import { fetchWithAuth } from "../../service/FetchService";
 
 const token = localStorage.getItem("token");
 
@@ -20,12 +21,8 @@ export const sendChatMessage = createAsyncThunk(
     };
 
     try {
-      const response = await fetch(`${ip}/chat/send`, {
+      const response = await fetchWithAuth(`${ip}/chat/send`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(input),
       });
 
@@ -61,12 +58,12 @@ export const fetchMessages = createAsyncThunk(
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        return thunkAPI.rejectWithValue(errorData);
+        throw new Error("Failed to fetch messages");
       }
 
       const data = await response.json();
-      return data;
+
+      return { chatId, chatType, messages: data };
     } catch (error) {
       return thunkAPI.rejectWithValue({ message: error.message });
     }
@@ -81,6 +78,8 @@ export const chatDetail = createSlice({
     loading: false,
     error: null,
     searchData: [],
+    privateMessages: {},
+    groupMessages: {},
     count: 0,
   },
 
@@ -94,13 +93,30 @@ export const chatDetail = createSlice({
     },
     // For private 1-on-1 messages
     addMessage: (state, action) => {
-      const message = action.payload;
-      console.log(message)
-      const chatId = message.chatId || message.fromUserId || message.toUserId;
-      if (!state.privateMessages[chatId]) {
-        state.privateMessages[chatId] = [];
+       const { message, currentUserId } = action.payload;
+      console.log("Received message:", message);
+
+    
+      const chatPartnerId =
+        message.senderId === currentUserId
+          ? message.receiverId
+          : message.senderId;
+
+      if (!chatPartnerId) {
+        console.error("Cannot determine chat partner ID");
+        return;
       }
-      state.privateMessages[chatId].push(message);
+
+      if (!state.privateMessages[chatPartnerId]) {
+        state.privateMessages[chatPartnerId] = [];
+      }
+
+      const existing = state.privateMessages[chatPartnerId].some(
+        (msg) => msg.id === message.id
+      );
+      if (!existing) {
+        state.privateMessages[chatPartnerId].push(message);
+      }
     },
 
     // For group messages
@@ -142,8 +158,27 @@ export const chatDetail = createSlice({
         state.error = null;
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
-        state.messages = action.payload;
+        const { chatId, chatType, messages } = action.payload;
         state.loading = false;
+
+        if (chatType === "private") {
+          // Convert message array into privateMessages structure based on partnerId
+          const myInfo = JSON.parse(localStorage.getItem("myInfo"));
+          const currentUserId = myInfo?.id;
+
+          if (messages.length > 0) {
+            const partnerId =
+              messages[0].senderId === currentUserId
+                ? messages[0].receiverId
+                : messages[0].senderId;
+
+            state.privateMessages[partnerId] = messages;
+          } else {
+            state.privateMessages[chatId] = []; // If no messages
+          }
+        } else {
+          state.groupMessages[chatId] = messages;
+        }
       })
       .addCase(fetchMessages.rejected, (state, action) => {
         state.error = action.payload;
