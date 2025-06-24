@@ -35,7 +35,7 @@ function App() {
   // preload user list
   useEffect(() => {
     const cachedUsers = localStorage.getItem("userList");
-    if (cachedUsers) {
+    if (cachedUsers === undefined) {
       dispatch(setUsers(JSON.parse(cachedUsers)));
     } else {
       dispatch(showUser()).then((res) => {
