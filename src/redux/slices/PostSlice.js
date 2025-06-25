@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { appConfig } from "../../config";
+import { fetchWithAuth } from "../../service/FetchService";
 
 const token = localStorage.getItem("token");
 
@@ -18,7 +19,7 @@ export const createPost = createAsyncThunk(
     };
 
     try {
-      const response = await fetch(`${ip}/post/create`, {
+      const response = await fetchWithAuth(`${ip}/post/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -46,7 +47,7 @@ export const showPost = createAsyncThunk(
   "showPost",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${ip}/post/get`, {
+      const response = await fetchWithAuth(`${ip}/post/get`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

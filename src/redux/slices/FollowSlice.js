@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { appConfig } from "../../config";
+import { fetchWithAuth } from "../../service/FetchService";
 
 const token = localStorage.getItem("token");
 
@@ -11,7 +12,7 @@ export const checkFollowStatus = createAsyncThunk(
   "follow/checkStatus",
   async ({ viewerId, targetUserId }, { rejectWithValue }) => {
     try {
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `${ip}/is-following?followerId=${viewerId}&followingId=${targetUserId}`
       );
       if (!res.ok) {
@@ -30,7 +31,7 @@ export const followUser = createAsyncThunk(
   "follow/followUser",
   async ({ viewerId, targetUserId }, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${ip}/follow`, {
+      const res = await fetchWithAuth(`${ip}/follow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ followerId: viewerId, followingId: targetUserId }),
@@ -50,7 +51,7 @@ export const unfollowUser = createAsyncThunk(
   "follow/unfollowUser",
   async ({ viewerId, targetUserId }, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${ip}/unfollow`, {
+      const res = await fetchWithAuth(`${ip}/unfollow`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ followerId: viewerId, followingId: targetUserId }),
@@ -71,7 +72,7 @@ export const fetchFollowers = createAsyncThunk(
   "follow/fetchFollowers",
   async (userId, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${ip}/followers/${userId}`);
+      const res = await fetchWithAuth(`${ip}/followers/${userId}`);
       if (!res.ok) throw new Error("Failed to fetch followers");
       const data = await res.json();
       return data;
@@ -86,7 +87,7 @@ export const fetchFollowing = createAsyncThunk(
   "follow/fetchFollowing",
   async (userId, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${ip}/following/${userId}`);
+      const res = await fetchWithAuth(`${ip}/following/${userId}`);
       if (!res.ok) throw new Error("Failed to fetch following");
       const data = await res.json();
       return data;
