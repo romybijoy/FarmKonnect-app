@@ -1,92 +1,106 @@
 import React, { useState } from "react";
-import { ref, uploadBytesResumable, getDownloadURL, getStorage } from "firebase/storage";
-import { Firebase } from "../../firebase/config"; // Firebase config
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { Firebase } from "../../firebase/config";
 import { useDispatch } from "react-redux";
 import { createStory } from "../../redux/slices/StorySlice";
 import { useNavigate } from "react-router-dom";
 
 function AddStory() {
   const [file, setFile] = useState(null);
-  const [type, setType] = useState('');
-  const [preview, setPreview] = useState('');
+  const [type, setType] = useState("");
+  const [preview, setPreview] = useState("");
+  const [uploading, setUploading] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const userData = JSON.parse(localStorage.getItem("myInfo"));
 
-  const handleImageChange = (e) => {
+  const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (!selected) return;
 
     const fileType = selected.type.startsWith("video") ? "video" : "image";
     setType(fileType);
 
-    Firebase.storage()
-      .ref(`/story/${selected.name}`)
-      .put(selected)
-      .then(({ ref }) => {
-        ref.getDownloadURL().then((url) => {
-          setFile(url);
-        });
-      });
+    if (fileType === "video") {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        const duration = video.duration;
+        if (duration > 15) {
+          alert("Please select a video less than or equal to 15 seconds");
+          setFile(null);
+          return;
+        } else {
+          setFile(selected);
+          setPreview(URL.createObjectURL(selected));
+        }
+      };
+      video.src = URL.createObjectURL(selected);
+    } else {
+      setFile(selected);
+      setPreview(URL.createObjectURL(selected));
+    }
   };
 
   const handleUpload = () => {
     if (!file) {
-      console.error("No file selected");
+      alert("Please select a file");
       return;
     }
 
-    dispatch(createStory({
-      type: type,
-      email: userData.email,
-      profilePic: userData.profilePic,
-      username: userData.username,
-      imageUrl: type === "image" ? file : "",
-      videoUrl: type === "video" ? file : "",
-    }));
+    setUploading(true);
+    const storageRef = ref(Firebase.storage(), `/story/${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
 
-    navigate("/home");
-  };
-
-  const handleClose = () => {
-    navigate("/home");
+    uploadTask.on(
+      "state_changed",
+      () => {},
+      (error) => {
+        alert("Upload failed");
+        setUploading(false);
+      },
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        dispatch(
+          createStory({
+            type: type,
+            email: userData.email,
+            profilePic: userData.profilePic,
+            username: userData.username,
+            imageUrl: type === "image" ? downloadURL : "",
+            videoUrl: type === "video" ? downloadURL : "",
+          })
+        );
+        navigate("/home");
+      }
+    );
   };
 
   return (
-    <div className="relative p-6 max-w-md mx-auto mt-10 bg-white rounded shadow">
-      <button 
-        onClick={handleClose} 
-        className="absolute top-2 right-2 text-gray-600 hover:text-red-600 text-xl font-bold"
-        title="Close"
-      >
-        &times;
-      </button>
+    <div className="p-4 max-w-md mx-auto bg-white shadow rounded mt-10">
+      <h2 className="text-xl mb-4 font-semibold">Add Story</h2>
 
-      <h2 className="text-xl font-semibold mb-4">Add Story</h2>
-
-      {file && (
+      {preview && (
         <div className="mb-4">
           {type === "image" ? (
-            <img src={file} alt="preview" className="w-full rounded" />
+            <img src={preview} alt="preview" className="w-full rounded" />
           ) : (
             <video controls className="w-full rounded">
-              <source src={file} />
+              <source src={preview} />
             </video>
           )}
         </div>
       )}
 
-      <input
-        type="file"
-        accept="image/*,video/*"
-        onChange={handleImageChange}
-      />
+      <input type="file" accept="image/*,video/*" onChange={handleFileChange} />
 
       <button
         onClick={handleUpload}
+        disabled={uploading}
         className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
       >
-        Upload
+        {uploading ? "Uploading..." : "Upload"}
       </button>
     </div>
   );

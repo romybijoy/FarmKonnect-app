@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 function StoryViewer({ user, onClose }) {
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [videoDuration, setVideoDuration] = useState(5); // fallback duration
+  const [videoDuration, setVideoDuration] = useState(5);
   const videoRef = useRef(null);
   const story = user.stories[current];
 
@@ -36,41 +36,35 @@ function StoryViewer({ user, onClose }) {
   };
 
   useEffect(() => {
-    setVideoDuration(5); // reset fallback duration
     if (story.type === "video" && videoRef.current) {
       const video = videoRef.current;
       const onLoadedMetadata = () => {
-        const duration = video.duration || 5;
-        setVideoDuration(duration);
+        setVideoDuration(video.duration || 5);
       };
       video.addEventListener("loadedmetadata", onLoadedMetadata);
       return () => {
         video.removeEventListener("loadedmetadata", onLoadedMetadata);
       };
+    } else {
+      setVideoDuration(5);
     }
   }, [current]);
 
   useEffect(() => {
     if (isPaused) return;
-    const duration =
-      story.type === "video" && videoRef.current?.duration
-        ? videoRef.current.duration * 1000
-        : 5000;
 
     const timer = setTimeout(() => {
       handleNext();
-    }, duration);
+    }, videoDuration * 1000);
 
     return () => clearTimeout(timer);
-  }, [current, isPaused]);
+  }, [current, isPaused, videoDuration]);
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+      {/* Left navigation */}
       {current > 0 && (
-        <button
-          onClick={handlePrev}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full text-white"
-        >
+        <button onClick={handlePrev} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full text-white">
           <i className="fa-solid fa-chevron-left"></i>
         </button>
       )}
@@ -79,22 +73,20 @@ function StoryViewer({ user, onClose }) {
         {/* Progress Bars */}
         <div className="absolute top-0 left-0 right-0 z-50 flex gap-1 px-4 pt-2 bg-black/30 backdrop-blur-sm">
           {user.stories.map((_, index) => (
-            <div
-              key={index}
-              className="h-1.5 flex-1 bg-white/30 rounded-full overflow-hidden"
-            >
+            <div key={index} className="h-1.5 flex-1 bg-white/30 rounded-full overflow-hidden">
               <div
                 className="h-full bg-white origin-left"
                 style={{
-                  transform: `scaleX(${
-                    index < current ? 1 : index === current ? 1 : 0
-                  })`,
-                  animation:
-                    index === current
-                      ? `story-progress ${videoDuration}s linear forwards`
-                      : "none",
-                  animationPlayState:
-                    index === current && isPaused ? "paused" : "running",
+                  transform: `scaleX(${index < current ? 1 : index === current ? 1 : 0})`,
+                  ...(index === current
+                    ? {
+                        animationName: "story-progress",
+                        animationDuration: `${videoDuration}s`,
+                        animationTimingFunction: "linear",
+                        animationFillMode: "forwards",
+                        animationPlayState: isPaused ? "paused" : "running",
+                      }
+                    : { animation: "none" }),
                 }}
               ></div>
             </div>
@@ -114,10 +106,10 @@ function StoryViewer({ user, onClose }) {
             ref={videoRef}
             key={story.id}
             src={story.videoUrl}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             autoPlay
             playsInline
-            muted={true}
+            muted
             controls={false}
           />
         )}
@@ -126,14 +118,7 @@ function StoryViewer({ user, onClose }) {
         <div className="absolute top-4 left-4 z-50 flex items-center space-x-2">
           <div className="relative w-10 h-10">
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 36 36">
-              <circle
-                cx="18"
-                cy="18"
-                r="16"
-                strokeWidth="3"
-                fill="none"
-                className="stroke-gray-500/40"
-              />
+              <circle cx="18" cy="18" r="16" strokeWidth="3" fill="none" className="stroke-gray-500/40" />
               <circle
                 cx="18"
                 cy="18"
@@ -141,17 +126,11 @@ function StoryViewer({ user, onClose }) {
                 strokeWidth="3"
                 fill="none"
                 strokeDasharray="100"
-                strokeDashoffset={`${
-                  100 - ((current + 1) / user.stories.length) * 100
-                }`}
+                strokeDashoffset={`${100 - ((current + 1) / user.stories.length) * 100}`}
                 className="stroke-pink-500 transition-all duration-500"
               />
             </svg>
-            <img
-              src={user.profilePic}
-              alt="profile"
-              className="rounded-full w-full h-full object-cover border-2 border-white"
-            />
+            <img src={user.profilePic} alt="profile" className="rounded-full w-full h-full object-cover border-2 border-white" />
           </div>
           <div className="text-white text-sm">
             <div className="font-semibold">{user.userName}</div>
@@ -159,7 +138,7 @@ function StoryViewer({ user, onClose }) {
           </div>
         </div>
 
-        {/* Pause Overlay */}
+        {/* Pause overlay */}
         <div
           className="absolute inset-0 z-40"
           onMouseDown={handleStart}
@@ -168,32 +147,18 @@ function StoryViewer({ user, onClose }) {
           onTouchEnd={handleEnd}
         ></div>
 
-        {/* Tap Navigation */}
+        {/* Tap navigation */}
         {!isPaused && (
           <div className="absolute inset-0 flex z-20">
-            <div
-              className="w-1/2"
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePrev();
-              }}
-            />
-            <div
-              className="w-1/2"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNext();
-              }}
-            />
+            <div className="w-1/2" onClick={(e) => { e.stopPropagation(); handlePrev(); }} />
+            <div className="w-1/2" onClick={(e) => { e.stopPropagation(); handleNext(); }} />
           </div>
         )}
       </div>
 
+      {/* Right navigation */}
       {current < user.stories.length - 1 && (
-        <button
-          onClick={handleNext}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full text-white"
-        >
+        <button onClick={handleNext} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full text-white">
           <i className="fa-solid fa-chevron-right"></i>
         </button>
       )}
