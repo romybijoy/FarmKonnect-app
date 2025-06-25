@@ -5,6 +5,7 @@ import prof3 from "../../assets/prof2.jpeg";
 import prof4 from "../../assets/prof3.jpeg";
 import "../../index.css";
 import NoPosts from "./NoPosts";
+import { parseISO, format } from 'date-fns';
 
 function Post({ data }) {
   const [expandedPosts, setExpandedPosts] = useState({});
@@ -55,8 +56,13 @@ function Post({ data }) {
     setExpandedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
 
+  function formatDate(dateString) {
+  const cleanDateString = dateString.split('.')[0];
+  const parsedDate = parseISO(cleanDateString);
+  return format(parsedDate, 'dd MMM yyyy, hh:mm a');
+}
   // if (![data].length) return <NoPosts />;
-console.log(data)
+  console.log(data);
   return (
     <div className="p-4 max-w-screen-md mx-auto">
       {data.length > 0 ? (
@@ -76,10 +82,10 @@ console.log(data)
                     className="w-12 h-12 rounded-full object-cover border mr-3"
                   />
                   <div>
-                    <h6 className="font-semibold text-sm">
-                      {post?.userName}
-                    </h6>
-                    <p className="text-xs text-gray-500">{post?.createdAt}</p>
+                    <h6 className="font-semibold text-sm">{post?.userName}</h6>
+                    <p className="text-xs text-gray-500">
+                      {post?.createdAt ? formatDate(post.createdAt) : ""}
+                    </p>
                   </div>
                 </div>
                 <div className="flex space-x-3 text-gray-500">
@@ -100,7 +106,7 @@ console.log(data)
                     </button>
                   )}
                 </div>
-               <img
+                <img
                   src={post.postImage}
                   alt="Post"
                   className="w-full max-h-[400px] mt-3 rounded-lg object-cover"
