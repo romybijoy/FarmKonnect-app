@@ -3,7 +3,7 @@ import Suggestions from "./Suggestions";
 import Feed from "./Feed";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { showBlockStatus, getProf } from "../redux/slices/UserSlice";
+import { showBlockStatus, getProf, showUser } from "../redux/slices/UserSlice";
 
 const Home = () => {
   const dispatch = useDispatch();
@@ -12,6 +12,17 @@ const Home = () => {
 
   const userData = JSON.parse(localStorage.getItem("userInfo"));
   useEffect(() => {
+
+  // preload user list
+      const cachedUsers = localStorage.getItem("userList");
+    if (cachedUsers === undefined) {
+      dispatch(setUsers(JSON.parse(cachedUsers)));
+    } else {
+      dispatch(showUser()).then((res) => {
+        localStorage.setItem("userList", JSON.stringify(res.payload.content));
+      });
+    }
+
 
     dispatch(getProf({ email: userData.email }));
 
@@ -36,6 +47,7 @@ const Home = () => {
     // const interval = setInterval(checkBlockedStatus, 60000);
     // return () => clearInterval(interval);
   }, [dispatch, navigate, userData.email]);
+
 
   return (
     <div className="container-fluid">

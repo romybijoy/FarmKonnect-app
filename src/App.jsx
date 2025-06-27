@@ -6,8 +6,6 @@ import {
   Navigate,
   useNavigate,
 } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { showUser, setUsers } from "./redux/slices/UserSlice";
 
 import "./App.css";
 
@@ -30,19 +28,6 @@ import VideoCallPage from "./components/call/VideoCallPage"; // update path as n
 import ChatApp from "./components/chat/ChatApp";
 
 function App() {
-  const dispatch = useDispatch();
-
-  // preload user list
-  useEffect(() => {
-    const cachedUsers = localStorage.getItem("userList");
-    if (cachedUsers === undefined) {
-      dispatch(setUsers(JSON.parse(cachedUsers)));
-    } else {
-      dispatch(showUser()).then((res) => {
-        localStorage.setItem("userList", JSON.stringify(res.payload.content));
-      });
-    }
-  }, [dispatch]);
 
   return (
     <BrowserRouter future={{ v7_startTransition: true }}>
