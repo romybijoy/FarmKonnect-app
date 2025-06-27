@@ -139,7 +139,7 @@ function Post({ data }) {
           );
         })
       ) : (
-        <p className="text-center text-gray-500">Loading posts...</p>
+        <NoPosts/>
       )}
     </div>
   );
