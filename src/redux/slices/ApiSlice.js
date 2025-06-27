@@ -1,6 +1,8 @@
 import { fetchBaseQuery, createApi } from "@reduxjs/toolkit/query/react";
 import { appConfig } from "../../config";
 
+import { logout } from "./AuthSlice";
+
 const baseQuery = fetchBaseQuery({ baseUrl: appConfig.ip,
   prepareHeaders: (headers) => {
     const token = localStorage.getItem('token');  // or 'accessToken' if you update it
