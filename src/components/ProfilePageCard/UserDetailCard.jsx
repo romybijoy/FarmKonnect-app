@@ -40,7 +40,7 @@ const UserDetailCard = ({
           {/* Profile Image */}
           <div className="relative mx-auto w-28 h-28">
             <img
-              src={user.image || "/default-avatar.png"}
+              src={user.image || "profile.png"}
               className="w-28 h-28 rounded-full border-4 border-white shadow-md object-cover"
               alt="Profile"
             />

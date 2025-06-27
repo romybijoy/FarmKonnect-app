@@ -108,7 +108,7 @@ const dispatch = useDispatch();
         <div className="text-center mb-3">
           <div className="position-relative d-inline-block">
             <Image
-              src={previewImage || "/default-avatar.png"}
+              src={previewImage || "profile.png"}
               roundedCircle
               width={100}
               height={100}

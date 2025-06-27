@@ -86,7 +86,7 @@ export default function PostUploadModal({ isOpen = true, onClose }) {
             {/* User Avatar & Textarea */}
             <div className="flex items-start gap-3 mb-3">
               <img
-                src={userData.image}
+                src={userData.image || "profile.png"}
                 alt="Avatar"
                 className="w-10 h-10 rounded-full"
               />
