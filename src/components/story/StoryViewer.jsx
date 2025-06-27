@@ -62,9 +62,19 @@ function StoryViewer({ user, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+      {/* Back Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 left-4 z-50 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full"
+      >
+        <i className="fa-solid fa-arrow-left"></i>
+      </button>
       {/* Left navigation */}
       {current > 0 && (
-        <button onClick={handlePrev} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full text-white">
+        <button
+          onClick={handlePrev}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full text-white"
+        >
           <i className="fa-solid fa-chevron-left"></i>
         </button>
       )}
@@ -73,11 +83,16 @@ function StoryViewer({ user, onClose }) {
         {/* Progress Bars */}
         <div className="absolute top-0 left-0 right-0 z-50 flex gap-1 px-4 pt-2 bg-black/30 backdrop-blur-sm">
           {user.stories.map((_, index) => (
-            <div key={index} className="h-1.5 flex-1 bg-white/30 rounded-full overflow-hidden">
+            <div
+              key={index}
+              className="h-1.5 flex-1 bg-white/30 rounded-full overflow-hidden"
+            >
               <div
                 className="h-full bg-white origin-left"
                 style={{
-                  transform: `scaleX(${index < current ? 1 : index === current ? 1 : 0})`,
+                  transform: `scaleX(${
+                    index < current ? 1 : index === current ? 1 : 0
+                  })`,
                   ...(index === current
                     ? {
                         animationName: "story-progress",
@@ -98,7 +113,7 @@ function StoryViewer({ user, onClose }) {
           <img
             key={story.id}
             src={story.imageUrl}
-            className="w-full h-full object-cover transition-all duration-300 ease-in-out"
+            className="w-full h-full object-contain transition-all duration-300 ease-in-out"
             alt=""
           />
         ) : (
@@ -109,7 +124,7 @@ function StoryViewer({ user, onClose }) {
             className="w-full h-full object-contain"
             autoPlay
             playsInline
-            muted
+            // muted
             controls={false}
           />
         )}
@@ -118,7 +133,14 @@ function StoryViewer({ user, onClose }) {
         <div className="absolute top-4 left-4 z-50 flex items-center space-x-2">
           <div className="relative w-10 h-10">
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 36 36">
-              <circle cx="18" cy="18" r="16" strokeWidth="3" fill="none" className="stroke-gray-500/40" />
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                strokeWidth="3"
+                fill="none"
+                className="stroke-gray-500/40"
+              />
               <circle
                 cx="18"
                 cy="18"
@@ -126,11 +148,17 @@ function StoryViewer({ user, onClose }) {
                 strokeWidth="3"
                 fill="none"
                 strokeDasharray="100"
-                strokeDashoffset={`${100 - ((current + 1) / user.stories.length) * 100}`}
+                strokeDashoffset={`${
+                  100 - ((current + 1) / user.stories.length) * 100
+                }`}
                 className="stroke-pink-500 transition-all duration-500"
               />
             </svg>
-            <img src={user.profilePic} alt="profile" className="rounded-full w-full h-full object-cover border-2 border-white" />
+            <img
+              src={user.profilePic}
+              alt="profile"
+              className="rounded-full w-full h-full object-cover border-2 border-white"
+            />
           </div>
           <div className="text-white text-sm">
             <div className="font-semibold">{user.userName}</div>
@@ -150,15 +178,30 @@ function StoryViewer({ user, onClose }) {
         {/* Tap navigation */}
         {!isPaused && (
           <div className="absolute inset-0 flex z-20">
-            <div className="w-1/2" onClick={(e) => { e.stopPropagation(); handlePrev(); }} />
-            <div className="w-1/2" onClick={(e) => { e.stopPropagation(); handleNext(); }} />
+            <div
+              className="w-1/2"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrev();
+              }}
+            />
+            <div
+              className="w-1/2"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNext();
+              }}
+            />
           </div>
         )}
       </div>
 
       {/* Right navigation */}
       {current < user.stories.length - 1 && (
-        <button onClick={handleNext} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full text-white">
+        <button
+          onClick={handleNext}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full text-white"
+        >
           <i className="fa-solid fa-chevron-right"></i>
         </button>
       )}

@@ -4,8 +4,9 @@ import { Firebase } from "../../firebase/config";
 import { useDispatch } from "react-redux";
 import { createStory } from "../../redux/slices/StorySlice";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
-function AddStory() {
+function AddStory({ onClose }) {
   const [file, setFile] = useState(null);
   const [type, setType] = useState("");
   const [preview, setPreview] = useState("");
@@ -57,7 +58,7 @@ function AddStory() {
       "state_changed",
       () => {},
       (error) => {
-        alert("Upload failed");
+       toast.error("Upload failed");
         setUploading(false);
       },
       async () => {
@@ -72,36 +73,53 @@ function AddStory() {
             videoUrl: type === "video" ? downloadURL : "",
           })
         );
+
+        toast.success("Story uploaded successfully!");
         navigate("/home");
       }
     );
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto bg-white shadow rounded mt-10">
-      <h2 className="text-xl mb-4 font-semibold">Add Story</h2>
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+      <div className="relative p-4 max-w-md w-full mx-auto bg-white shadow rounded-lg">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-gray-600 hover:text-red-500 text-xl font-bold"
+        >
+          &times;
+        </button>
 
-      {preview && (
-        <div className="mb-4">
-          {type === "image" ? (
-            <img src={preview} alt="preview" className="w-full rounded" />
-          ) : (
-            <video controls className="w-full rounded">
-              <source src={preview} />
-            </video>
-          )}
-        </div>
-      )}
+        <h2 className="text-xl mb-4 font-semibold">Add Story</h2>
 
-      <input type="file" accept="image/*,video/*" onChange={handleFileChange} />
+        {preview && (
+          <div className="mb-4">
+            {type === "image" ? (
+              <img src={preview} alt="preview" className="w-full rounded" />
+            ) : (
+              <video controls className="w-full rounded">
+                <source src={preview} />
+              </video>
+            )}
+          </div>
+        )}
 
-      <button
-        onClick={handleUpload}
-        disabled={uploading}
-        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        {uploading ? "Uploading..." : "Upload"}
-      </button>
+        <input
+          type="file"
+          accept="image/*,video/*"
+          onChange={handleFileChange}
+          className="mb-4"
+        />
+
+        <button
+          onClick={handleUpload}
+          disabled={uploading}
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          {uploading ? "Uploading..." : "Upload"}
+        </button>
+      </div>
     </div>
   );
 }
