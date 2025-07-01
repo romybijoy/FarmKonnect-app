@@ -10,6 +10,10 @@ import { Stomp } from "@stomp/stompjs";
 import store from "../redux/store";
 import { useSelector } from "react-redux";
 import { addMessage, addGroupMessage } from "../redux/slices/ChatSlice";
+import {
+  getSignalHandler,
+  setSignalSender,
+} from "../components/call/SignalService";
 
 // 1️⃣ Create Context
 const WebSocketContext = createContext();
@@ -23,7 +27,18 @@ export const WebSocketProvider = ({ children }) => {
   console.log(userId);
   useEffect(() => {
     if (userId) {
-      connectWebSocket(userId);
+      connectWebSocket(userId).then(() => {
+        // Set the signal sender only after WebSocket is connected
+        console.log("[WebSocket] Subscribing to /topic/call/" + userId);
+        setSignalSender((receiverId, signal) => {
+          sendMessageWS("/app/call/signal", {
+            ...signal,
+            callerId: userId,
+            receiverId,
+            targetId: receiverId, // for ICE
+          });
+        });
+      });
     }
   }, [userId]);
 
@@ -62,6 +77,33 @@ export const WebSocketProvider = ({ children }) => {
             }
           );
           subscriptions.current.set(`private-${userId}`, privateSub);
+
+          const callSub = stompClient.current.subscribe(
+            `/topic/call/${userId}`,
+            (msg) => {
+              const data = JSON.parse(msg.body); // <- this is flat
+              console.log("[WebSocket] Received call signal:", data);
+
+              const handler = getSignalHandler();
+              if (handler) {
+                handler({
+                  senderId: data.callerId, // <- required by WebRTCContext
+                  signal: {
+                    type: data.type,
+                    sdp: data.sdp || null,
+                    candidate: data.candidate || null,
+                    sdpMid: data.sdpMid || null,
+                    sdpMLineIndex: data.sdpMLineIndex || null,
+                    callType: data.callType || null,
+                  },
+                });
+              } else {
+                console.warn("[WebSocket] No signal handler found");
+              }
+            }
+          );
+
+          subscriptions.current.set(`call-${userId}`, callSub);
 
           resolve();
         },

@@ -11,10 +11,12 @@ import { useWebSocket } from "../../context/WebSocketContext";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
+import { useWebRTC } from "../../context/WebRTCContext";
+
 export default function ChatWindow({ selectedChat, chatType }) {
   const userData = JSON.parse(localStorage.getItem("myInfo"));
   const dispatch = useDispatch();
-
+const { startCall } = useWebRTC();
   const { privateMessages, groupMessages, loading, error } = useSelector(
     (state) => state.chat
   );
@@ -22,8 +24,8 @@ export default function ChatWindow({ selectedChat, chatType }) {
   // Get correct message list based on chat type
   const messages =
     chatType === "private"
-      ? privateMessages[selectedChat] || []
-      : groupMessages[selectedChat] || [];
+      ? privateMessages[selectedChat?.id] || []
+      : groupMessages[selectedChat?.id] || [];
 
   const { sendMessageWS, subscribeToGroup, connected } = useWebSocket();
   const navigate = useNavigate();
@@ -32,12 +34,12 @@ export default function ChatWindow({ selectedChat, chatType }) {
   useEffect(() => {
     if (!selectedChat) return;
 
-    dispatch(fetchMessages({ chatId: selectedChat, chatType, ip: appConfig.ip }));
+    dispatch(fetchMessages({ chatId: selectedChat?.id, chatType, ip: appConfig.ip }));
 
     if (chatType === "group" && connected) {
-      subscribeToGroup(selectedChat);
+      subscribeToGroup(selectedChat?.id);
     }
-  }, [selectedChat, chatType, dispatch, connected, subscribeToGroup]);
+  }, [selectedChat?.id, chatType, dispatch, connected, subscribeToGroup]);
 
   const onSend = (message) => {
     if (!connected) {
@@ -52,37 +54,39 @@ export default function ChatWindow({ selectedChat, chatType }) {
     if (chatType === "private") {
       // dispatch(addMessage({ message,currentUserId: userData.id}));
     } else {
-      dispatch(addGroupMessage({ chatId: selectedChat, message }));
+      dispatch(addGroupMessage({ chatId: selectedChat?.id, message }));
     }
   };
 
   const handleCall = (type) => {
-    if (!selectedChat) {
+    if (!selectedChat?.id) {
       alert("Please select a chat first.");
       return;
     }
-    navigate(`/call?type=${type}&to=${selectedChat}`);
+    navigate(`/call?type=${type}&to=${selectedChat?.id}`);
   };
 
   return (
     <div className="flex flex-col flex-1 bg-white rounded-lg shadow-inner">
       {chatType === "private" && selectedChat && (
         <div className="flex justify-between items-center px-4 py-2 bg-white border-b border-gray-300">
-          <div className="font-semibold text-gray-800">{selectedChat}</div>
+        <div className="flex items-center gap-3">
+  <img
+    src={selectedChat?.image || "profile.png"} // fallback image
+    alt="Profile"
+    className="w-10 h-10 rounded-full object-cover"
+  />
+  <span className="font-semibold text-gray-800">{selectedChat?.name}</span>
+</div>
           <div className="flex gap-2">
-            <button
-              onClick={() => handleCall("audio")}
-              className="p-2 rounded-full bg-green-500 text-white hover:bg-green-600"
-            >
-              🎧
-            </button>
-            <button
-              onClick={() => handleCall("video")}
-              className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600"
-            >
-              🎥
-            </button>
-          </div>
+          <button onClick={() => startCall(selectedChat?.id, "audio")} className="p-2 bg-green-500 rounded text-white">🎧</button>
+         <button
+  onClick={() => navigate(`/call/video/${selectedChat?.id}`)}
+  className="p-2 bg-blue-500 rounded text-white"
+>
+  🎥
+</button>
+        </div>
         </div>
       )}
 
@@ -112,7 +116,7 @@ export default function ChatWindow({ selectedChat, chatType }) {
       <div className="border-t border-gray-300 bg-white px-4 py-3">
         <MessageInput
           onSend={onSend}
-          selectedChat={selectedChat}
+          selectedChat={selectedChat?.id}
           chatType={chatType}
           disabled={!connected}
         />

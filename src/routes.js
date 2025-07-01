@@ -12,6 +12,8 @@ const ChatApp = React.lazy(() => import('./components/chat/ChatApp'))
 
 const AddStory  = React.lazy(() => import('./components/story/AddStory'))
 
+const VideoCallPage = React.lazy(() => import('./components/call/VideoCallPage'))
+
 const routes = [
   { path: '/', exact: true, element: Login  },
   { path: '/profile', name: 'Profile', element: Profile },
@@ -19,6 +21,7 @@ const routes = [
   { path: '/addPost', name: 'Home', element: AddPost },
   { path: '/chat', name: 'Users', element: ChatApp },
   { path: '/addStory', name: 'Home', element: AddStory },
+  {path:"/call/video/:receiverId", element:VideoCallPage }
 ]
 
 export default routes

@@ -8,16 +8,12 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./index.css";
 import store from "./redux/store";
 import { AuthContextProvider } from "./context/AuthContext";
-import { WebSocketProvider } from './context/WebSocketContext';
 
 const App = React.lazy(() => import("./App"));
-
 createRoot(document.getElementById("root")).render(
   <Provider store={store}>
     <AuthContextProvider>
-      <WebSocketProvider>
       <App />
-      </WebSocketProvider>
     </AuthContextProvider>
   </Provider>
 );

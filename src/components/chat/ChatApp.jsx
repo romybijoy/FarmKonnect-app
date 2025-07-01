@@ -1,10 +1,16 @@
 import ChatSidebar from "./ChatSidebar";
 import ChatWindow from "./ChatWindow";
 import React, { useState } from "react";
+import VideoCallScreen from "../call/CallScreen";
+import { useWebRTC } from "../../context/WebRTCContext";
 
 export default function ChatApp() {
-  const [selectedChat, setSelectedChat] = useState(null); // userId or groupId
+  const [selectedChat, setSelectedChat] = useState(null); // user
   const [chatType, setChatType] = useState("private"); // "private" or "group"
+
+  const { calling, ...rest } = useWebRTC();
+
+  if (calling) return <VideoCallScreen />;
 
   return (
    
