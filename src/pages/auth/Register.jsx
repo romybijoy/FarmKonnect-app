@@ -17,7 +17,7 @@ const Register = () => {
     password: "",
     mobile_number: "",
     role: "USER",
-    image: "",
+    // image: "",
 
   });
   const [image, setImage] = useState("");
@@ -71,7 +71,7 @@ const Register = () => {
       email: "",
       password: "",
       mobile_number: "",
-      image: "",
+      // image: "",
     });
 
     if (res.payload?.status === 409) {
@@ -167,7 +167,7 @@ const Register = () => {
         </Form.Group>
 
       
-        <Form.Group className="my-2" controlId="image">
+        {/* <Form.Group className="my-2" controlId="image">
           <Form.Label>Profile Image</Form.Label>
           <br />
          
@@ -194,7 +194,7 @@ const Register = () => {
               </div>
             </div>
           )}
-        </Form.Group>
+        </Form.Group> */}
 
         <Button type="submit" variant="primary" className="mt-3">
           Submit
