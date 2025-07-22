@@ -3,10 +3,13 @@ import { Modal, Button, Form, Image } from "react-bootstrap";
 import { Camera } from "lucide-react";
 import { Firebase } from "../../firebase/config";
 import { useDispatch } from "react-redux";
-import { updateUser } from "../../redux/slices/UserSlice"; 
+import { updateUser } from "../../redux/slices/UserSlice";
 import { toast } from "react-toastify";
 
-const EditProfileModal = ({ show, handleClose, user, onSave }) => {
+const EditProfileModal = ({ show, handleClose, user }) => {
+  const dispatch = useDispatch();
+  const fileInputRef = useRef(null);
+
   const [formData, setFormData] = useState({
     userName: "",
     email: "",
@@ -16,9 +19,8 @@ const EditProfileModal = ({ show, handleClose, user, onSave }) => {
     image: "",
   });
 
-  const [previewImage, setPreviewImage] = useState(user?.image || "");
-  const fileInputRef = useRef(null);
-const dispatch = useDispatch();
+  const [previewImage, setPreviewImage] = useState("");
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -29,7 +31,7 @@ const dispatch = useDispatch();
         district: user.district || "",
         image: user.image || "",
       });
-      setPreviewImage(user.image);
+      setPreviewImage(user.image || "");
     }
   }, [user]);
 
@@ -41,62 +43,37 @@ const dispatch = useDispatch();
     }));
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const storageRef = Firebase.storage().ref(`/image/user/${file.name}`);
+    try {
+      const storageRef = Firebase.storage().ref(`/image/user/${file.name}`);
+      const snapshot = await storageRef.put(file);
+      const url = await snapshot.ref.getDownloadURL();
 
-    storageRef
-      .put(file)
-      .then((snapshot) => {
-        return snapshot.ref.getDownloadURL();
-      })
-      .then((url) => {
-        setPreviewImage(url);
-        setFormData((prev) => ({
-          ...prev,
-          image: url,
-        }));
-        console.log("Firebase Image URL:", url);
-      })
-      .catch((error) => {
-        console.error("Error uploading image:", error);
-      });
-  };
-
-  // const handleFileChange = (e) => {
-  //   const file = e.target.files[0];
-  //   if (!file) return;
-
-  //   const imageUrl = URL.createObjectURL(file);
-  //   setPreviewImage(imageUrl);
-
-  //   // Pass to parent for upload
-  //   onImageChange && onImageChange(file);
-  // };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const previewUrl = URL.createObjectURL(file);
-    setPreviewImage(previewUrl);
-    setFormData((prev) => ({
-      ...prev,
-      profileImage: file,
-    }));
+      setPreviewImage(url);
+      setFormData((prev) => ({
+        ...prev,
+        image: url,
+      }));
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    }
   };
 
   const handleSubmit = async () => {
-  try {
-    await dispatch(updateUser({data: formData, userId: user.id})).unwrap();
-    toast.success("Profile updated!");
-    handleClose();
-  } catch (err) {
-    toast.error("Failed to update profile!");
-  }
-};
+    try {
+      console.log("Submitting formData:", formData);
+      await dispatch(updateUser({ data: formData, userId: user.id })).unwrap();
+      toast.success("Profile updated!");
+      handleClose();
+    } catch (err) {
+      console.error("Update failed:", err);
+      toast.error("Failed to update profile!");
+    }
+  };
 
   return (
     <Modal show={show} onHide={handleClose} centered>
@@ -115,15 +92,16 @@ const dispatch = useDispatch();
               style={{ objectFit: "cover", border: "3px solid #ccc" }}
             />
             <div
-              className="absolute bottom-1 right-1 bg-black bg-opacity-60 p-1.5 rounded-full cursor-pointer hover:bg-opacity-80 transition"
+              className="position-absolute bottom-0 end-0 bg-dark bg-opacity-75 p-2 rounded-circle cursor-pointer"
               onClick={() => fileInputRef.current.click()}
+              style={{ transform: "translate(25%, 25%)" }}
             >
-              <Camera className="w-4 h-4 text-white" />
+              <Camera className="text-white" size={16} />
             </div>
             <input
               type="file"
               accept="image/*"
-              className="hidden"
+              className="d-none"
               ref={fileInputRef}
               onChange={handleFileChange}
             />
@@ -131,16 +109,17 @@ const dispatch = useDispatch();
         </div>
 
         <Form>
-          <Form.Group className="mb-3" controlId="formName">
+          <Form.Group className="mb-3" controlId="formUserName">
             <Form.Label>Full Name</Form.Label>
             <Form.Control
               type="text"
-              name="name"
+              name="userName"
               value={formData.userName}
               onChange={handleChange}
               placeholder="Your name"
             />
           </Form.Group>
+
           <Form.Group className="mb-3" controlId="formEmail">
             <Form.Label>Email</Form.Label>
             <Form.Control
@@ -151,6 +130,7 @@ const dispatch = useDispatch();
               placeholder="Your Email"
             />
           </Form.Group>
+
           <Form.Group className="mb-3" controlId="formMobile">
             <Form.Label>Mobile Number</Form.Label>
             <Form.Control
@@ -161,6 +141,7 @@ const dispatch = useDispatch();
               placeholder="Your Mobile Number"
             />
           </Form.Group>
+
           <Form.Group className="mb-3" controlId="formDistrict">
             <Form.Label>District</Form.Label>
             <Form.Control
@@ -171,6 +152,7 @@ const dispatch = useDispatch();
               placeholder="Your District"
             />
           </Form.Group>
+
           <Form.Group className="mb-3" controlId="formDescription">
             <Form.Label>Bio</Form.Label>
             <Form.Control

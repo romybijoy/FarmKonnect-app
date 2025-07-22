@@ -70,6 +70,96 @@ export const fetchMessages = createAsyncThunk(
   }
 );
 
+
+// group
+
+export const createGroup = createAsyncThunk(
+  "group/create",
+  async (groupData, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/chat/groups`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(groupData),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        return rejectWithValue(error.message || "Failed to create group");
+      }
+
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
+export const addGroupMember = createAsyncThunk(
+  "group/addMember",
+  async ({ groupId, userId }, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/groups/${groupId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        return rejectWithValue(error.message || "Failed to add member");
+      }
+
+      return { groupId, userId };
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
+
+export const getGroupMembers = createAsyncThunk(
+  "group/getMembers",
+  async (groupId, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/groups/${groupId}/members`);
+
+      if (!res.ok) {
+        const error = await res.json();
+        return rejectWithValue(error.message || "Failed to get group members");
+      }
+
+      const members = await res.json();
+      return { groupId, members };
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
+
+export const getAllGroups = createAsyncThunk(
+  "group/getAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/chat/groups`);
+
+      if (!res.ok) {
+        const error = await res.json();
+        return rejectWithValue(error.message || "Failed to fetch groups");
+      }
+
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
+
+
 export const chatDetail = createSlice({
   name: "chat",
   initialState: {
@@ -81,6 +171,10 @@ export const chatDetail = createSlice({
     privateMessages: {},
     groupMessages: {},
     count: 0,
+    groups: [],              // All groups
+    groupMembers: {}, 
+    groupLoading: false,
+    groupError: null,
   },
 
   reducers: {
@@ -183,6 +277,67 @@ export const chatDetail = createSlice({
       .addCase(fetchMessages.rejected, (state, action) => {
         state.error = action.payload;
         state.loading = false;
+      })
+
+      // ▶️ Create Group
+      .addCase(createGroup.pending, (state) => {
+        state.groupLoading = true;
+        state.groupError = null;
+      })
+      .addCase(createGroup.fulfilled, (state, action) => {
+        state.groupLoading = false;
+        state.groups.push(action.payload);
+      })
+      .addCase(createGroup.rejected, (state, action) => {
+        state.groupLoading = false;
+        state.groupError = action.payload;
+      })
+
+      // ▶️ Add Group Member
+      .addCase(addGroupMember.pending, (state) => {
+        state.groupLoading = true;
+        state.groupError = null;
+      })
+      .addCase(addGroupMember.fulfilled, (state, action) => {
+        state.groupLoading = false;
+        const { groupId, userId } = action.payload;
+        if (!state.groupMembers[groupId]) {
+          state.groupMembers[groupId] = [];
+        }
+        state.groupMembers[groupId].push(userId);
+      })
+      .addCase(addGroupMember.rejected, (state, action) => {
+        state.groupLoading = false;
+        state.groupError = action.payload;
+      })
+
+      // ▶️ Get Group Members
+      .addCase(getGroupMembers.pending, (state) => {
+        state.groupLoading = true;
+        state.groupError = null;
+      })
+      .addCase(getGroupMembers.fulfilled, (state, action) => {
+        state.groupLoading = false;
+        const { groupId, members } = action.payload;
+        state.groupMembers[groupId] = members;
+      })
+      .addCase(getGroupMembers.rejected, (state, action) => {
+        state.groupLoading = false;
+        state.groupError = action.payload;
+      })
+
+      // ▶️ Get All Groups
+      .addCase(getAllGroups.pending, (state) => {
+        state.groupLoading = true;
+        state.groupError = null;
+      })
+      .addCase(getAllGroups.fulfilled, (state, action) => {
+        state.groupLoading = false;
+        state.groups = action.payload;
+      })
+      .addCase(getAllGroups.rejected, (state, action) => {
+        state.groupLoading = false;
+        state.groupError = action.payload;
       });
   },
 });
