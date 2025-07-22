@@ -31,9 +31,14 @@ const AuthSlice = createSlice({
     adddata: (state, action) => {
       state.data = action.payload;
     },
+
+    updateUserPresence: (state, action) => {
+      const { userId, isOnline } = action.payload;
+      state.presenceMap[userId] = isOnline;
+    },
   },
 });
 
-export const { setCredentials, logout, currentuser } = AuthSlice.actions;
+export const { setCredentials, logout, currentuser, updateUserPresence  } = AuthSlice.actions;
 
 export default AuthSlice.reducer;

@@ -12,15 +12,17 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 import { useWebRTC } from "../../context/WebRTCContext";
+import ChatHeader from "./ChatHeader";
+import GroupChatHeader from "./GroupChatHeader";
 
 export default function ChatWindow({ selectedChat, chatType }) {
   const userData = JSON.parse(localStorage.getItem("myInfo"));
+  console.log(selectedChat);
   const dispatch = useDispatch();
-const { startCall } = useWebRTC();
+  const { startCall } = useWebRTC();
   const { privateMessages, groupMessages, loading, error } = useSelector(
     (state) => state.chat
   );
-
   // Get correct message list based on chat type
   const messages =
     chatType === "private"
@@ -34,7 +36,9 @@ const { startCall } = useWebRTC();
   useEffect(() => {
     if (!selectedChat) return;
 
-    dispatch(fetchMessages({ chatId: selectedChat?.id, chatType, ip: appConfig.ip }));
+    dispatch(
+      fetchMessages({ chatId: selectedChat?.id, chatType, ip: appConfig.ip })
+    );
 
     if (chatType === "group" && connected) {
       subscribeToGroup(selectedChat?.id);
@@ -67,32 +71,46 @@ const { startCall } = useWebRTC();
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-white rounded-lg shadow-inner">
+    <div className="flex flex-col h-full bg-white rounded-lg shadow-inner">
+      {/* Header */}
       {chatType === "private" && selectedChat && (
         <div className="flex justify-between items-center px-4 py-2 bg-white border-b border-gray-300">
-        <div className="flex items-center gap-3">
-  <img
-    src={selectedChat?.image || "profile.png"} // fallback image
-    alt="Profile"
-    className="w-10 h-10 rounded-full object-cover"
-  />
-  <span className="font-semibold text-gray-800">{selectedChat?.name}</span>
-</div>
+          <div className="flex items-center gap-3">
+            <img
+              src={selectedChat?.profilePicture || "profile.png"}
+              alt="Profile"
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <ChatHeader
+              email={selectedChat?.email}
+              username={selectedChat?.username}
+            />
+          </div>
           <div className="flex gap-2">
-          <button onClick={() => startCall(selectedChat?.id, "audio")} className="p-2 bg-green-500 rounded text-white">🎧</button>
-         <button
-  onClick={() => navigate(`/call/video/${selectedChat?.id}`)}
-  className="p-2 bg-blue-500 rounded text-white"
->
-  🎥
-</button>
-        </div>
+            <button
+              onClick={() =>
+                navigate(`/call/video/${selectedChat?.id}`, {
+                  state: { selectedChat },
+                })
+              }
+              className="p-2 bg-blue-500 rounded text-white"
+            >
+              🎥
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="flex-1 px-6 py-4 overflow-y-auto bg-gray-100">
+      {chatType === "group" && selectedChat && (
+        <GroupChatHeader groupInfo={selectedChat} />
+      )}
+
+      {/* Scrollable Messages */}
+      <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-100">
         {loading && (
-          <div className="text-center text-sm text-gray-500">Loading messages...</div>
+          <div className="text-center text-sm text-gray-500">
+            Loading messages...
+          </div>
         )}
         {error && (
           <div className="text-center text-sm text-red-500">
@@ -113,7 +131,8 @@ const { startCall } = useWebRTC();
         ))}
       </div>
 
-      <div className="border-t border-gray-300 bg-white px-4 py-3">
+      {/* Input */}
+      <div className="bg-white border-t border-gray-300 px-4 py-3">
         <MessageInput
           onSend={onSend}
           selectedChat={selectedChat?.id}

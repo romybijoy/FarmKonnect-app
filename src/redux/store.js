@@ -5,6 +5,8 @@ import PostSlice from "./slices/PostSlice";
 import ChatSlice from "./slices/ChatSlice";
 import FollowSlice from "./slices/FollowSlice";
 import StorySlice from "./slices/StorySlice";
+import NotificationSlice from "./slices/NotificationSlice";
+import PresenceSlice from "./slices/PresenceSlice";
 import { ApiSlice } from "./slices/ApiSlice";
 
 const store = configureStore({
@@ -17,6 +19,8 @@ const store = configureStore({
     chat: ChatSlice,
     follow: FollowSlice,
     story: StorySlice,
+    notifications: NotificationSlice,
+    presence: PresenceSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }).concat(
