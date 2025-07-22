@@ -13,69 +13,28 @@ export default function CallScreen({
   isAudioMuted,
   isVideoMuted,
 }) {
-  // useEffect(() => {
-  //   console.log("🎬 localVideoRef:", localVideo);
-  //   console.log("🎥 localStreamRef:", localStreamRef);
-
-  //   if (localVideo.current && localStreamRef.current) {
-  //     localVideo.current.srcObject = localStreamRef.current;
-  //     localVideo.current
-  //       .play()
-  //       .then(() => console.log("✅ Local video playing"))
-  //       .catch((err) => console.error("❌ Video play failed:", err));
-  //   }
-  // }, [localStreamRef]);
-  // useEffect(() => {
-    
-  //   if (remoteVideoRef.current && pendingRemoteStream) {
-  //     console.log("🎯 Attaching pending remote stream after mount" + pendingRemoteStream.current);
-  //     remoteVideoRef.current.srcObject = pendingRemoteStream.current;
-  //     remoteVideoRef.current
-  //       .play()
-  //       .then(() => console.log("✅ Remote video playing (delayed)"))
-  //       .catch((err) =>
-  //         console.error(
-  //           "❌ Delayed remote video play failed:",
-  //           err.name,
-  //           err.message
-  //         )
-  //       );
-  //     pendingRemoteStream.current = null;
-  //   }
-  // }, [remoteVideoRef.current]);
-
+ 
   useEffect(() => {
-  const tryAttachRemoteStream = () => {
-    if (remoteVideoRef.current && pendingRemoteStream.current) {
-      console.log("🎯 Delayed: attaching pending remote stream");
-
+    
+    if (remoteVideoRef.current && pendingRemoteStream) {
+      console.log("🎯 Attaching pending remote stream after mount" + pendingRemoteStream.current);
       remoteVideoRef.current.srcObject = pendingRemoteStream.current;
-
       remoteVideoRef.current
         .play()
-        .then(() => console.log("✅ Remote video now playing"))
+        .then(() => console.log("✅ Remote video playing (delayed)"))
         .catch((err) =>
-          console.error("❌ Delayed remote video play failed:", err.name, err.message)
+          console.error(
+            "❌ Delayed remote video play failed:",
+            err.name,
+            err.message
+          )
         );
-
-      // Clear it so it doesn't attach again
       pendingRemoteStream.current = null;
     }
-  };
-
-  // Try immediately
-  tryAttachRemoteStream();
-
-  // Retry a few times in case ref comes late (dirty but effective)
-  const interval = setInterval(tryAttachRemoteStream, 300);
-  setTimeout(() => clearInterval(interval), 2000); // stop retrying after 2s
-
-  return () => clearInterval(interval);
-}, []);
-
-  // useEffect(() => {
-  //   console.log("✅ remoteVideoRef mounted:", remoteVideoRef.current);
-  // }, []);
+  }, [remoteVideoRef.current]);
+  useEffect(() => {
+    console.log("✅ remoteVideoRef mounted:", remoteVideoRef.current);
+  }, []);
   return (
     <div className="relative w-full h-screen bg-black text-white flex flex-col">
       {/* Top info */}
