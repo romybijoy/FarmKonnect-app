@@ -10,10 +10,7 @@ import { Stomp } from "@stomp/stompjs";
 import store from "../redux/store";
 import { useSelector } from "react-redux";
 import { addMessage, addGroupMessage } from "../redux/slices/ChatSlice";
-import {
-  getSignalHandler,
-  setSignalSender,
-} from "../components/call/SignalService";
+import { useSignal } from "./SignalContext";
 
 // 1️⃣ Create Context
 const WebSocketContext = createContext();
@@ -24,6 +21,7 @@ export const WebSocketProvider = ({ children }) => {
   const [connected, setConnected] = useState(false);
   const userData = JSON.parse(localStorage.getItem("myInfo"));
   const userId = userData?.id;
+  const { setSignalSender, handleSignalSender } = useSignal();
   console.log(userId);
   useEffect(() => {
     if (userId) {
@@ -84,9 +82,8 @@ export const WebSocketProvider = ({ children }) => {
               const data = JSON.parse(msg.body); // <- this is flat
               console.log("[WebSocket] Received call signal:", data);
 
-              const handler = getSignalHandler();
-              if (handler) {
-                handler({
+              if (handleSignalSender) {
+                handleSignalSender({
                   senderId: data.callerId, // <- required by WebRTCContext
                   signal: {
                     type: data.type,
@@ -105,6 +102,21 @@ export const WebSocketProvider = ({ children }) => {
 
           subscriptions.current.set(`call-${userId}`, callSub);
 
+          const notificationSub = stompClient.current.subscribe(
+            `/user/queue/notifications`,
+            (msg) => {
+              const notification = JSON.parse(msg.body);
+              console.log("🔔 Notification received:", notification);
+
+              // Dispatch to Redux if you have a notificationSlice
+              store.dispatch({
+                type: "notification/addNotification",
+                payload: notification,
+              });
+            }
+          );
+          subscriptions.current.set(`notification-${userId}`, notificationSub);
+
           resolve();
         },
         (error) => {
@@ -116,7 +128,7 @@ export const WebSocketProvider = ({ children }) => {
     });
   };
 
-  const disconnectWebSocket = () => {
+    const disconnectWebSocket = () => {
     if (stompClient.current) {
       subscriptions.current.forEach((sub) => sub.unsubscribe());
       subscriptions.current.clear();
