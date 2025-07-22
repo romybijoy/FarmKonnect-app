@@ -17,7 +17,9 @@ export const checkFollowStatus = createAsyncThunk(
       );
       if (!res.ok) {
         const errorData = await res.json();
-        return rejectWithValue(errorData.message || "Failed to check follow status");
+        return rejectWithValue(
+          errorData.message || "Failed to check follow status"
+        );
       }
       const data = await res.json();
       return { targetUserId, isFollowing: data.following };
@@ -34,7 +36,10 @@ export const followUser = createAsyncThunk(
       const res = await fetchWithAuth(`${ip}/follow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ followerId: viewerId, followingId: targetUserId }),
+        body: JSON.stringify({
+          followerId: viewerId,
+          followingId: targetUserId,
+        }),
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -54,7 +59,10 @@ export const unfollowUser = createAsyncThunk(
       const res = await fetchWithAuth(`${ip}/unfollow`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ followerId: viewerId, followingId: targetUserId }),
+        body: JSON.stringify({
+          followerId: viewerId,
+          followingId: targetUserId,
+        }),
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -103,17 +111,17 @@ export const followDetail = createSlice({
     followers: [],
     following: [],
     followStatus: {},
-    loading: {}, 
-    globalLoading: false,  // for fetchFollowers, fetchFollowing
+    loading: {},
+    globalLoading: false, // for fetchFollowers, fetchFollowing
     error: {},
-    globalError: null
+    globalError: null,
   },
 
   reducers: {},
 
   extraReducers: (builder) => {
     builder
- .addCase(checkFollowStatus.pending, (state, action) => {
+      .addCase(checkFollowStatus.pending, (state, action) => {
         const { targetUserId } = action.meta.arg;
         state.loading[targetUserId] = true;
         state.error[targetUserId] = null;
@@ -164,35 +172,34 @@ export const followDetail = createSlice({
       })
       // Fetch Followers
       .addCase(fetchFollowers.pending, (state) => {
-        state.globalLoading  = true;
+        state.globalLoading = true;
         state.globalError = null;
       })
       .addCase(fetchFollowers.fulfilled, (state, action) => {
-        state.globalLoading  = false;
+        state.globalLoading = false;
         state.followers = action.payload;
       })
       .addCase(fetchFollowers.rejected, (state, action) => {
-        state.globalLoading  = false;
+        state.globalLoading = false;
         state.globalError = action.payload;
         // toast.error(`Error fetching followers: ${action.payload}`);
       })
 
       // Fetch Following
       .addCase(fetchFollowing.pending, (state) => {
-        state.globalLoading  = true;
+        state.globalLoading = true;
         state.globalError = null;
       })
       .addCase(fetchFollowing.fulfilled, (state, action) => {
-        state.globalLoading  = false;
+        state.globalLoading = false;
         state.following = action.payload;
       })
       .addCase(fetchFollowing.rejected, (state, action) => {
-        state.globalLoading  = false;
+        state.globalLoading = false;
         state.globalError = action.payload;
-        toast.error(`Error fetching following: ${action.payload}`);
+        // toast.error(`Error fetching following: ${action.payload}`);
       });
-       
-      },
+  },
 });
 
 export default followDetail.reducer;

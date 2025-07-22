@@ -57,7 +57,9 @@ export const showUser = createAsyncThunk(
       const result = await response.json();
       return result;
     } catch (error) {
-      return thunkAPI.rejectWithValue({ message: error.message || "Unexpected error" });
+      return thunkAPI.rejectWithValue({
+        message: error.message || "Unexpected error",
+      });
     }
   }
 );
@@ -134,22 +136,29 @@ export const updateUser = createAsyncThunk(
 
 //update action
 export const fetchUserById = createAsyncThunk(
-  "fetchUserById",
+  "users/fetchById", // More descriptive action type
   async (id, { rejectWithValue }) => {
-    const response = await fetch(`${ip}/get-users/${id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
     try {
+      const response = await fetch(`${ip}/get-users/${id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        // Handle non-2xx HTTP responses
+        const errorData = await response.json();
+        return rejectWithValue(errorData);
+      }
+
       const result = await response.json();
       console.log(result);
       return result;
     } catch (error) {
-      return rejectWithValue(error);
+      // Handle network or parsing errors
+      return rejectWithValue(error.message || "Unexpected error");
     }
   }
 );
@@ -160,7 +169,7 @@ export const getProf = createAsyncThunk(
     const response = await fetch(`${ip}/get-profile/${arg.email}`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
     });
 
@@ -223,15 +232,19 @@ export const regenerateOTP = createAsyncThunk(
 );
 
 //forgot-password action
-export const forgotPassword = createAsyncThunk("forgotPassword",
+export const forgotPassword = createAsyncThunk(
+  "forgotPassword",
   async ({ email }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${ip}/auth/forgot-password?email=${email}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${ip}/auth/forgot-password?email=${email}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       const result = await response.json();
 
@@ -271,24 +284,27 @@ export const resetPassword = createAsyncThunk(
 );
 
 //block status
-export const showBlockStatus = createAsyncThunk('showBlockStatus', async ( data, { rejectWithValue }) => {
-  console.log(data)
-  let response
-  response = await fetch(`${ip}/auth/${data.email}/block-status`, {
-    method: 'GET',
-    // headers: {
-    //   Authorization: `Bearer ${token}`,
-    // },
-  })
+export const showBlockStatus = createAsyncThunk(
+  "showBlockStatus",
+  async (data, { rejectWithValue }) => {
+    console.log(data);
+    let response;
+    response = await fetch(`${ip}/auth/${data.email}/block-status`, {
+      method: "GET",
+      // headers: {
+      //   Authorization: `Bearer ${token}`,
+      // },
+    });
 
-  try {
-    const result = await response.json()
-    console.log(result)
-    return result
-  } catch (error) {
-    return rejectWithValue(error)
+    try {
+      const result = await response.json();
+      console.log(result);
+      return result;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   }
-})
+);
 
 export const userDetail = createSlice({
   name: "app",
@@ -296,15 +312,14 @@ export const userDetail = createSlice({
     users: [],
     loading: false,
     error: null,
-    user: "",
+    user: null,
     searchData: [],
-    data:null,
+    data: null,
     message: null,
     currentUser: null,
   },
 
   reducers: {
-   
     setUsers: (state, action) => {
       state.users = action.payload.content;
     },
@@ -336,6 +351,19 @@ export const userDetail = createSlice({
       .addCase(showUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      .addCase(fetchUserById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.ourUsers; 
+      })
+      .addCase(fetchUserById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch user"; 
       })
 
       .addCase(deleteUser.pending, (state) => {
@@ -372,7 +400,7 @@ export const userDetail = createSlice({
         state.loading = false;
         state.currentUser = action.payload;
         if (action.payload) {
-          console.log(action.payload)
+          console.log(action.payload);
           localStorage.setItem("myInfo", JSON.stringify(action.payload));
         }
       })
@@ -425,15 +453,15 @@ export const userDetail = createSlice({
         state.error = action.payload.message;
       })
       .addCase(showBlockStatus.pending, (state) => {
-        state.loading = true
+        state.loading = true;
       })
       .addCase(showBlockStatus.fulfilled, (state, action) => {
-        state.loading = false
-        state.data = action.payload
+        state.loading = false;
+        state.data = action.payload;
       })
       .addCase(showBlockStatus.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });

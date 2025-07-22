@@ -1,8 +1,4 @@
 import React, { useState } from "react";
-import prof1 from "../assets/prof1.jpeg";
-import prof2 from "../assets/prof4.jpeg";
-import prof3 from "../assets/prof2.jpeg";
-import prof4 from "../assets/prof3.jpeg";
 import FollowButton from "./follow/FollowButton";
 
 function Suggestions() {

@@ -60,10 +60,9 @@ const LoginScreen = () => {
     e.preventDefault();
     const form = e.currentTarget;
 
-    // Check form validation
     if (!form.checkValidity()) {
       e.stopPropagation();
-      setValidated(true); // For Bootstrap-style validation UI
+      setValidated(true);
       return;
     }
 
@@ -71,12 +70,15 @@ const LoginScreen = () => {
       const res = await login({ email, password }).unwrap();
       dispatch(setCredentials({ ...res }));
 
-      if (role === "ADMIN") {
+      // Use role from response, not localStorage
+      const userRole = res.role;
+
+      if (userRole === "ADMIN") {
         setError("Invalid user credentials.");
         return;
       }
 
-      if (role === "USER") {
+      if (userRole === "USER") {
         navigate("/home");
         toast.success("Login successfully");
       }
