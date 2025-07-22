@@ -42,7 +42,7 @@ export const showStory = createAsyncThunk(
   "showStory",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetchWithAuth(`${ip}/active`, {
+      const response = await fetchWithAuth(`${ip}/following/${userData?.id}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

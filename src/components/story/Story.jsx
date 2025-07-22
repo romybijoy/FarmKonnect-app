@@ -134,13 +134,13 @@ function Story({ onSelect }) {
 </NavLink>
         {stories.map((story) => (
           <div
-            key={story.email}
+            key={story.userId}
             className="flex flex-col items-center cursor-pointer"
             onClick={() => onSelect(story)}
           >
             <div className="w-16 h-16 rounded-full p-1 border-2 border-pink-500">
               <img
-                src={story.profilePic}
+                src={story.profilePic || "profile.png"}
                 alt="story"
                 className="w-full h-full object-cover rounded-full"
               />

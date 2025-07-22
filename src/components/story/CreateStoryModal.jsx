@@ -66,7 +66,7 @@ function AddStory({ onClose }) {
         dispatch(
           createStory({
             type: type,
-            email: userData.email,
+            userId: userData.id,
             profilePic: userData.profilePic,
             username: userData.username,
             imageUrl: type === "image" ? downloadURL : "",
