@@ -90,9 +90,9 @@ function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-    bg-white shadow-lg h-full w-64 z-30
+    bg-white shadow-lg h-full h-screen w-64 z-30
     transform transition-transform duration-300 ease-in-out
-    fixed top-0 left-0
+    fixed top-0 left-0 overflow-y-auto md:h-full md:overflow-y-visible 
     ${
       isMobile
         ? isMobileMenuOpen
@@ -141,10 +141,14 @@ function Sidebar() {
                 <BiMessageDetail className="text-xl" />
                 Messages
               </NavLink>
-              <div className="flex items-center gap-4 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100">
+              <NavLink
+                to="/notifications"
+                className={navItemClasses}
+                onClick={handleNavClick}
+              >
                 <FaBell className="text-lg" />
                 Notifications
-              </div>
+             </NavLink>
               <NavLink
                 to="/addPost"
                 className={navItemClasses}
@@ -179,7 +183,7 @@ function Sidebar() {
             </div>
 
             {showDropdown && (
-              <div className="mt-2 bg-white rounded shadow">
+              <div className="mt-2 bg-white rounded shadow mb-4">
                 <button
                   onClick={confirmLogout}
                   className="w-full text-left px-4 py-2 hover:bg-red-100 text-red-600 flex items-center gap-2"
