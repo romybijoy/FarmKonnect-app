@@ -1,40 +1,66 @@
 import React, { useEffect } from "react";
 
+import { useWebRTC } from "../../context/WebRTCContext";
 export default function CallScreen({
   callerName,
   callerProfile,
   localVideoRef,
   localStreamRef,
-  pendingRemoteStream,
-  remoteVideoRef,
+  // pendingRemoteStream,
+  // hasPlayedRemoteRef,
+  // remoteVideoRef,
   onEndCall,
   onToggleMic,
   onToggleVideo,
   isAudioMuted,
   isVideoMuted,
 }) {
- 
-  useEffect(() => {
-    
-    if (remoteVideoRef.current && pendingRemoteStream) {
-      console.log("🎯 Attaching pending remote stream after mount" + pendingRemoteStream.current);
-      remoteVideoRef.current.srcObject = pendingRemoteStream.current;
+  const { remoteVideoRef, pendingRemoteStream, hasPlayedRemoteRef } =
+    useWebRTC();
+
+  console.log(
+    "values2221111",
+    pendingRemoteStream.current,
+    remoteVideoRef.current,
+    hasPlayedRemoteRef.current
+  );
+
+  const attachRemoteStream = (stream) => {
+    if (!remoteVideoRef.current || hasPlayedRemoteRef.current) return;
+
+    remoteVideoRef.current.srcObject = stream;
+
+    const tryPlay = () => {
       remoteVideoRef.current
         .play()
-        .then(() => console.log("✅ Remote video playing (delayed)"))
-        .catch((err) =>
-          console.error(
-            "❌ Delayed remote video play failed:",
-            err.name,
-            err.message
-          )
-        );
+        .then(() => {
+          console.log("✅ Remote video playing");
+          hasPlayedRemoteRef.current = true;
+        })
+        .catch((err) => {
+          console.error("❌ play() failed:", err.name, err.message);
+        });
+    };
+
+    if (remoteVideoRef.current.readyState >= 2) {
+      tryPlay();
+    } else {
+      remoteVideoRef.current.onloadedmetadata = tryPlay;
+    }
+  };
+
+  useEffect(() => {
+    if (
+      remoteVideoRef.current &&
+      pendingRemoteStream.current &&
+      !hasPlayedRemoteRef.current
+    ) {
+      console.log("🎯 Attaching pending remote stream");
+      attachRemoteStream(pendingRemoteStream.current);
       pendingRemoteStream.current = null;
     }
   }, [remoteVideoRef.current]);
-  useEffect(() => {
-    console.log("✅ remoteVideoRef mounted:", remoteVideoRef.current);
-  }, []);
+
   return (
     <div className="relative w-full h-screen bg-black text-white flex flex-col">
       {/* Top info */}
@@ -52,6 +78,7 @@ export default function CallScreen({
       <video
         ref={remoteVideoRef}
         autoPlay
+        muted
         playsInline
         className="w-full h-full object-cover"
       />
@@ -62,7 +89,7 @@ export default function CallScreen({
           ref={localVideoRef}
           autoPlay
           playsInline
-          muted={false}
+          muted
           className="w-full h-full object-cover"
         />
       </div>

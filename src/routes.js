@@ -11,8 +11,8 @@ const ChatApp = React.lazy(() => import("./components/chat/ChatApp"));
 
 const AddStory = React.lazy(() => import("./components/story/AddStory"));
 
-const VideoCallPage = React.lazy(() =>
-  import("./components/call/VideoCallPage")
+const CallPage = React.lazy(() =>
+  import("./components/call/CallPage")
 );
 
 const NotificationPanel = React.lazy(() =>
@@ -26,7 +26,7 @@ const routes = [
   { path: "/addPost", name: "Home", element: AddPost },
   { path: "/chat", name: "Users", element: ChatApp },
   { path: "/addStory", name: "Home", element: AddStory },
-  { path: "/call/video/:receiverId", element: VideoCallPage },
+  { path: "/call/:receiverId", element: CallPage },
   { path: "/notifications", element: NotificationPanel },
 ];
 

@@ -24,12 +24,13 @@ export const SignalProvider = ({ children }) => {
     signalSenderRef.current(receiverId, signal);
   };
 
-  const handleSignalSender = (signal, senderId) => {
+  const handleSignalSender = ({senderId, signal} ) => {
+    console.log("📩 Incoming signal:", signal, "from", senderId);
     if (!signalHandlerRef.current) {
       console.warn("⚠️ Signal handler not set");
       return;
     }
-    signalHandlerRef.current(signal, senderId);
+    signalHandlerRef.current({signal, senderId });
   };
 
   return (
