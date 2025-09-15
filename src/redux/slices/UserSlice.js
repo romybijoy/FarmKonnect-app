@@ -188,15 +188,13 @@ export const verifyOTP = createAsyncThunk(
   "verifyOTP",
   async (data, { rejectWithValue }) => {
     console.log("otp data", data);
-    const response = await fetch(
-      `${ip}/auth/verify-account?email=${data.email}&otp=${data.otp}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await fetch(`${ip}/auth/verify-account`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
 
     try {
       const result = await response.json();
@@ -213,7 +211,7 @@ export const regenerateOTP = createAsyncThunk(
   async (data, { rejectWithValue }) => {
     console.log("updated data", data);
     const response = await fetch(
-      `${ip}/auth/regenerate-otp?email=${data.email}`,
+      `${ip}/auth/regenerate-otp?email=${data.email}&isUpdateEmail=${data.isUpdateEmail}&currentEmail=${data.currentEmail}`,
       {
         method: "PUT",
         headers: {
@@ -317,6 +315,7 @@ export const userDetail = createSlice({
     data: null,
     message: null,
     currentUser: null,
+    profiles: {},
   },
 
   reducers: {
@@ -359,11 +358,13 @@ export const userDetail = createSlice({
       })
       .addCase(fetchUserById.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.ourUsers; 
+        state.user = action.payload.ourUsers;
+        const user = action.payload.ourUsers;
+        state.profiles[user.id] = user;
       })
       .addCase(fetchUserById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Failed to fetch user"; 
+        state.error = action.payload || action.error.message;
       })
 
       .addCase(deleteUser.pending, (state) => {

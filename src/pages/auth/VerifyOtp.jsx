@@ -1,75 +1,108 @@
-import React from "react";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Form, Button } from "react-bootstrap";
-import FormContainer from "../../components/Form/FormContainer";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { useLoginMutation } from "../../redux/slices/UsersApiSlice";
 import { toast } from "react-toastify";
 import { verifyOTP, regenerateOTP } from "../../redux/slices/UserSlice";
 
-
 const OtpVerification = () => {
-  const [otp, setOtp] = useState(new Array(6).fill(""));
-  const [minutes, setMinutes] = useState(1);
-  const [seconds, setSeconds] = useState(30);
-
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const location = useLocation();
 
-  const [login, { isLoading }] = useLoginMutation();
+  const purpose = location.state?.purpose;
+  const initialEmail = location.state?.email || "";
 
-  const { userInfo } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.app);
 
-  const { user, error, loading } = useSelector((state) => state.app);
+  const [email, setEmail] = useState(initialEmail || user?.email || "");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState(new Array(6).fill(""));
+  const [minutes, setMinutes] = useState(1);
+  const [seconds, setSeconds] = useState(0);
 
-  const resendOTP = () => {
-    setMinutes(1);
-    setSeconds(60);
-
-    dispatch(regenerateOTP({ email: user.email }));
-  };
-
+  // OTP Countdown
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (seconds > 0) {
-        setSeconds(seconds - 1);
-      }
-
-      if (seconds === 0) {
-        if (minutes === 0) {
-          clearInterval(interval);
-        } else {
+    let interval;
+    if (otpSent) {
+      interval = setInterval(() => {
+        if (seconds > 0) {
+          setSeconds((prev) => prev - 1);
+        } else if (minutes > 0) {
+          setMinutes((prev) => prev - 1);
           setSeconds(59);
-          setMinutes(minutes - 1);
+        } else {
+          clearInterval(interval);
         }
-      }
-    }, 1000);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [seconds, minutes, otpSent]);
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [seconds]);
-
+  // Handle OTP input
   const handleChange = (index, event) => {
     const newOtp = [...otp];
     newOtp[index] = event.target.value.substring(0, 1);
     setOtp(newOtp);
-
-    // Move to next input on typing
     if (event.target.value && index < 5) {
       document.getElementById(`otp-${index + 1}`).focus();
     }
   };
-  const submitHandler = async (e) => {
-    e.preventDefault();
-    try {
-      dispatch(verifyOTP({ email: user.email, otp: otp }));
-      navigate("/login");
-    } catch (err) {
-      toast.error(err?.data?.message || err.error);
-      navigate("/verifyotp");
+
+  const sendOtpHandler = () => {
+    if (!email) {
+      toast.error("Please enter an email.");
+      return;
     }
+    dispatch(
+      regenerateOTP({ email, isUpdateEmail: true, currentEmail: initialEmail })
+    );
+    setOtpSent(true);
+    setMinutes(1);
+    setSeconds(0);
+    toast.success("OTP sent to " + email);
+  };
+
+  const resendOTP = () => {
+    dispatch(regenerateOTP({ email, isUpdateEmail: true, currentEmail: initialEmail }));
+    setMinutes(1);
+    setSeconds(0);
+    toast.info("OTP resent to " + email);
+  };
+
+  const submitHandler = (e) => {
+    e.preventDefault();
+    if (otp.some((d) => d === "")) {
+      toast.error("Please enter full OTP.");
+      return;
+    }
+    const isUpdateEmail = purpose === "emailEdit";
+
+    const otpString = otp.join("");
+
+    dispatch(
+      verifyOTP({
+        currentEmail: initialEmail,
+        otp: otpString,
+        isUpdateEmail,
+        newEmail: email,
+      })
+    )
+      .unwrap()
+      .then(() => {
+        toast.success("Email verified successfully!");
+
+        if (isUpdateEmail) {
+          localStorage.setItem("emailOtpVerified", "true");
+          localStorage.setItem("verifiedEmail", email);
+          console.log("first")
+         navigate("/profile", { state: { openEditModal: true, verifiedEmail: email } });
+        } else {
+          navigate("/login");
+        }
+      })
+      .catch((err) => {
+        toast.error(err?.message || "OTP verification failed");
+      });
   };
 
   return (
@@ -81,68 +114,84 @@ const OtpVerification = () => {
         backgroundPosition: "center",
       }}
     >
-      <div className="flex items-center justify-center h-screen bg-gradient-to-t from-pink-200 to-green-500 h-50">
-        {/* OTP Card */}
+      <div className="flex items-center justify-center h-screen">
         <div className="bg-white/20 backdrop-blur-md p-6 rounded-lg shadow-lg w-96 text-center">
           <h2 className="text-white text-2xl font-semibold mb-4">
-            OTP Verification
+            {otpSent ? "Verify OTP" : "Edit & Verify Email"}
           </h2>
-          <p className="text-white text-sm mb-6">
-            Enter the 6-digit OTP sent to your email
-          </p>
 
-          {/* OTP Inputs */}
-          <div className="flex justify-center gap-3">
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                id={`otp-${index}`}
-                type="text"
-                value={digit}
-                onChange={(e) => handleChange(index, e)}
-                className="w-12 h-12 text-center text-xl font-bold border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white/40 text-gray-900"
-                maxLength="1"
-              />
-            ))}
-          </div>
+          {/* Email Input */}
+          <input
+            type="email"
+            className="w-full mb-4 px-3 py-2 rounded text-gray-900"
+            placeholder="Enter email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={otpSent}
+          />
 
-          {/* Verify Button */}
-          <button
-            className="mt-6 bg-yellow-400 hover:bg-yellow-500 transition-all text-black font-bold py-2 px-6 rounded-lg shadow-md"
-            onClick={submitHandler}
-          >
-            Verify OTP
-          </button>
+          {/* OTP Input */}
+          {otpSent && (
+            <>
+              <p className="text-white text-sm mb-4">
+                Enter the 6-digit OTP sent to your email
+              </p>
+              <div className="flex justify-center gap-2 mb-4">
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    id={`otp-${index}`}
+                    type="text"
+                    value={digit}
+                    onChange={(e) => handleChange(index, e)}
+                    className="w-10 h-10 text-center text-xl font-bold border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white/40 text-gray-900"
+                    maxLength="1"
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Action Buttons */}
+          {!otpSent ? (
+            <button
+              className="mt-4 bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded"
+              onClick={sendOtpHandler}
+            >
+              Send OTP
+            </button>
+          ) : (
+            <button
+              className="mt-4 bg-green-400 hover:bg-green-500 text-black font-bold py-2 px-4 rounded"
+              onClick={submitHandler}
+            >
+              Verify OTP
+            </button>
+          )}
 
           {/* Countdown */}
-          <div className="countdown-text">
-            {/* Display countdown timer if seconds or minutes are greater than 0 */}
-            <br />
-            {seconds > 0 || minutes > 0 ? (
-              <p>
-                Time Remaining:{" "}
-                <span style={{ fontWeight: 600 }}>
-                  {minutes < 10 ? `0${minutes}` : minutes}:
-                  {seconds < 10 ? `0${seconds}` : seconds}
-                </span>
-              </p>
-            ) : (
-              // Display if countdown timer reaches 0
-              <p>Didn't receive OTP?</p>
-            )}
-
-            {/* Button to resend OTP */}
-            <button
-              disabled={seconds > 0 || minutes > 0}
-              style={{
-                color: seconds > 0 || minutes > 0 ? "#DFE3E8" : "#FF5630",
-                fontWeight: "bold",
-              }}
-              onClick={resendOTP}
-            >
-              Resend OTP
-            </button>
-          </div>
+          {otpSent && (
+            <div className="mt-3 text-white">
+              {seconds > 0 || minutes > 0 ? (
+                <p>
+                  Time Remaining:{" "}
+                  <strong>
+                    {minutes < 10 ? `0${minutes}` : minutes}:
+                    {seconds < 10 ? `0${seconds}` : seconds}
+                  </strong>
+                </p>
+              ) : (
+                <p>Didn't receive OTP?</p>
+              )}
+              <button
+                onClick={resendOTP}
+                disabled={seconds > 0 || minutes > 0}
+                className="text-red-300 hover:text-red-500 font-semibold mt-1"
+              >
+                Resend OTP
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

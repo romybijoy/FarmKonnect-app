@@ -1,23 +1,14 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { CheckCircle, Pencil, Camera } from "lucide-react";
 import EditProfileModal from "./EditProfileModal";
 
 const UserDetailCard = ({
   user,
   isCurrentUser,
-  // onEditProfile,
-  // onImageChange,
+  verifiedEmail,
+  openEditModal
 }) => {
-  // const user = {
-  //   username: "john_doe",
-  //   name: "John Doe",
-  //   bio: "Photographer | Travel Lover 🌍📸",
-  //   profileImage: "https://i.pravatar.cc/300",
-  //   postsCount: 132,
-  //   followers: 2890,
-  //   following: 322,
-  // };
-
+  
   const fileInputRef = useRef(null);
   const [previewImage, setPreviewImage] = useState(user.image);
   const [modalOpen, setModalOpen] = useState(false);
@@ -31,6 +22,13 @@ const UserDetailCard = ({
     // Pass to parent for upload
     onImageChange && onImageChange(file);
   };
+
+   useEffect(() => {
+    if (openEditModal) {
+      // Call your function or set state to open modal
+      setModalOpen(openEditModal);
+    }
+  }, [openEditModal]);
 
   return (
     <div className="bg-white rounded-2xl shadow p-6">
@@ -109,6 +107,7 @@ const UserDetailCard = ({
         show={modalOpen}
         handleClose={() => setModalOpen(false)}
         user={user}
+         verifiedEmail={verifiedEmail} 
       />
     </div>
   );

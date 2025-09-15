@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import ProfilePostsPart from "../ProfilePageCard/ProfilePostsPart";
 import UserDetailCard from "../ProfilePageCard/UserDetailCard";
+import { useLocation } from "react-router-dom";
 // import { isFollowing, isReqUser } from '../../Config/Logic'
 // import { findByUsernameAction, getUserProfileAction } from '../../Redux/User/Action'
 
@@ -18,12 +19,14 @@ const Profile = () => {
   // console.log(user)
 
   // const { currentUser } = useSelector((state) => state.app);
- const { posts } = useSelector((state) => state.post);
-
+  const { posts } = useSelector((state) => state.post);
+  const location = useLocation();
+  const verifiedEmail = location.state?.verifiedEmail;
+  const openEditModal = location.state?.openEditModal;
   useEffect(() => {
     dispatch(showPost());
   }, [dispatch]);
-  
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-3">
@@ -33,6 +36,8 @@ const Profile = () => {
             <UserDetailCard
               user={currentUser}
               isCurrentUser={true} // only show Edit Profile if this is the logged-in user
+              verifiedEmail={verifiedEmail}
+              openEditModal={openEditModal}
               // onEditProfile={() => console.log("Open edit modal or route")}
               // onImageChange={(file) => {
               //   console.log("Image selected:", file);
@@ -45,7 +50,7 @@ const Profile = () => {
         {/* Right Content / Posts */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow pt-1">
-            <ProfilePostsPart user={currentUser} post={posts}/>
+            <ProfilePostsPart user={currentUser} post={posts} />
           </div>
         </div>
       </div>
