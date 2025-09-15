@@ -5,11 +5,17 @@ import { Firebase } from "../../firebase/config";
 import { useDispatch } from "react-redux";
 import { updateUser } from "../../redux/slices/UserSlice";
 import { toast } from "react-toastify";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const EditProfileModal = ({ show, handleClose, user }) => {
+  const [isEmailEditable, setIsEmailEditable] = useState(false);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const location = useLocation();
 
+  const verifiedEmail =
+    location.state?.verifiedEmail || localStorage.getItem("verifiedEmail");
   const [formData, setFormData] = useState({
     userName: "",
     email: "",
@@ -23,17 +29,27 @@ const EditProfileModal = ({ show, handleClose, user }) => {
 
   useEffect(() => {
     if (user) {
+      const emailOtpVerified =
+        localStorage.getItem("emailOtpVerified") === "true";
+      const finalEmail = verifiedEmail || (emailOtpVerified ? "" : user.email); // fallback
+
       setFormData({
         userName: user.name || "",
-        email: user.email || "",
+        email: finalEmail,
         mobile_number: user.mobile_number || "",
         description: user.description || "",
         district: user.district || "",
         image: user.image || "",
       });
+
       setPreviewImage(user.image || "");
+
+      if (verifiedEmail || emailOtpVerified) {
+        setIsEmailEditable(true);
+        localStorage.removeItem("emailOtpVerified");
+      }
     }
-  }, [user]);
+  }, [user, verifiedEmail]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,13 +82,33 @@ const EditProfileModal = ({ show, handleClose, user }) => {
   const handleSubmit = async () => {
     try {
       console.log("Submitting formData:", formData);
+
+      if (formData.email !== user.email && !isEmailEditable) {
+        toast.error("Please verify OTP before changing your email.");
+        return;
+      }
+
       await dispatch(updateUser({ data: formData, userId: user.id })).unwrap();
       toast.success("Profile updated!");
+      localStorage.removeItem("verifiedEmail");
+      setIsEmailEditable(false);
       handleClose();
     } catch (err) {
       console.error("Update failed:", err);
       toast.error("Failed to update profile!");
     }
+  };
+
+  const handleEmailEditOtp = () => {
+    localStorage.setItem("otpPurpose", "emailEdit");
+
+    console.log("first", formData.email);
+    navigate("/verifyotp", {
+      state: {
+        purpose: "emailEdit",
+        email: formData.email,
+      },
+    });
   };
 
   return (
@@ -122,13 +158,30 @@ const EditProfileModal = ({ show, handleClose, user }) => {
 
           <Form.Group className="mb-3" controlId="formEmail">
             <Form.Label>Email</Form.Label>
-            <Form.Control
-              type="text"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Your Email"
-            />
+            <div className="d-flex align-items-center gap-2">
+              <Form.Control
+                type="text"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Your Email"
+                readOnly={!isEmailEditable}
+              />
+              {!isEmailEditable && (
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={handleEmailEditOtp}
+                >
+                  Edit with OTP
+                </Button>
+              )}
+            </div>
+            {!isEmailEditable && (
+              <Form.Text className="text-muted">
+                To change your email, verify via OTP.
+              </Form.Text>
+            )}
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="formMobile">
