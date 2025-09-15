@@ -77,7 +77,7 @@ const GroupChatHeader = ({ groupInfo }) => {
       )}
       {showMembersList && (
         <ViewGroupMembers
-          members={groupInfo.members}
+          memberIds={groupInfo.members}
           onClose={() => setShowMembersList(false)}
         />
       )}
