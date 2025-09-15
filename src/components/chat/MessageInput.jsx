@@ -9,6 +9,7 @@ import {
 import EmojiPicker from "emoji-picker-react";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { Firebase } from "../../firebase/config";
+import { useWebSocket } from "../../context/WebSocketContext"; // Adjust path if needed
 
 export default function MessageInput({
   onSend,
@@ -30,6 +31,9 @@ export default function MessageInput({
   const fileInputRef = useRef(null);
   const emojiRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem("myInfo"));
+  const { sendTypingStatus } = useWebSocket();
+  const [typingTimeout, setTypingTimeout] = useState(null);
+ const typingTimeoutRef = useRef(null);
 
   const handleEmojiClick = (emojiData) => {
     setText((prev) => prev + emojiData.emoji);
@@ -186,6 +190,7 @@ export default function MessageInput({
       setIsRecording(false);
     }
   };
+ 
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -272,7 +277,40 @@ export default function MessageInput({
           type="text"
           value={text}
           disabled={disabled || uploading}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+
+            if (selectedChat?.isGroup) {
+              sendTypingStatus({
+                email: userData?.email,
+                isTyping: true,
+                groupId: selectedChat.id,
+              });
+            } else {
+              sendTypingStatus({
+                email: userData?.email,
+                isTyping: true,
+                receiverId: selectedChat?.id,
+              });
+            }
+
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => {
+              if (selectedChat?.isGroup) {
+                sendTypingStatus({
+                  email: selectedChat?.email,
+                  isTyping: false,
+                  groupId: selectedChat.id,
+                });
+              } else {
+                sendTypingStatus({
+                  email: selectedChat?.email,
+                  isTyping: false,
+                  receiverId: selectedChat?.id,
+                });
+              }
+            }, 1500);
+          }}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Type your message"
           className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none"

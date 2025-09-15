@@ -47,7 +47,7 @@ export const fetchMessages = createAsyncThunk(
       const endpoint =
         chatType === "group"
           ? `${ip}/api/chat/history/group/${chatId}`
-          : `${ip}/api/chat/history/user/${chatId}`;
+          : `${ip}/api/chat/history/private?receiverId=${chatId}&senderId=${userData?.id}`;
 
       const response = await fetch(endpoint, {
         method: "GET",
@@ -69,7 +69,6 @@ export const fetchMessages = createAsyncThunk(
     }
   }
 );
-
 
 // group
 
@@ -99,8 +98,9 @@ export const createGroup = createAsyncThunk(
 export const addGroupMember = createAsyncThunk(
   "group/addMember",
   async ({ groupId, userId }, { rejectWithValue }) => {
+    console.log(groupId, userId);
     try {
-      const res = await fetchWithAuth(`${ip}/groups/${groupId}/members`, {
+      const res = await fetchWithAuth(`${ip}/chat/groups/${groupId}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -118,9 +118,8 @@ export const addGroupMember = createAsyncThunk(
   }
 );
 
-
 export const getGroupMembers = createAsyncThunk(
-  "group/getMembers",
+  "group/getGroupMembers",
   async (groupId, { rejectWithValue }) => {
     try {
       const res = await fetchWithAuth(`${ip}/groups/${groupId}/members`);
@@ -137,7 +136,6 @@ export const getGroupMembers = createAsyncThunk(
     }
   }
 );
-
 
 export const getAllGroups = createAsyncThunk(
   "group/getAll",
@@ -158,7 +156,30 @@ export const getAllGroups = createAsyncThunk(
   }
 );
 
+export const getMembers = createAsyncThunk(
+  "group/getMembers",
+  async (ids, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${appConfig.ip}/user/multiple`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids }),
+      });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch group members");
+      }
+
+      const data = await response.json();
+      return data; // should be an array of user details
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
 
 export const chatDetail = createSlice({
   name: "chat",
@@ -171,10 +192,15 @@ export const chatDetail = createSlice({
     privateMessages: {},
     groupMessages: {},
     count: 0,
-    groups: [],              // All groups
-    groupMembers: {}, 
+    groups: [], // All groups
+    groupMembers: {},
     groupLoading: false,
     groupError: null,
+    members: [],
+    mbrsLoading: false,
+    mbrsError: null,
+    selectedChatId: null,
+    selectedType: null,
   },
 
   reducers: {
@@ -185,12 +211,15 @@ export const chatDetail = createSlice({
     setUsers: (state, action) => {
       state.users = action.payload;
     },
+    setSelectedChat: (state, action) => {
+      state.selectedChatId = action.payload.chatId;
+      state.selectedType = action.payload.type;
+    },
     // For private 1-on-1 messages
     addMessage: (state, action) => {
-       const { message, currentUserId } = action.payload;
+      const { message, currentUserId } = action.payload;
       console.log("Received message:", message);
 
-    
       const chatPartnerId =
         message.senderId === currentUserId
           ? message.receiverId
@@ -338,6 +367,18 @@ export const chatDetail = createSlice({
       .addCase(getAllGroups.rejected, (state, action) => {
         state.groupLoading = false;
         state.groupError = action.payload;
+      })
+      .addCase(getMembers.pending, (state) => {
+        state.mbrsLoading = true;
+        state.mbrsError = null;
+      })
+      .addCase(getMembers.fulfilled, (state, action) => {
+        state.mbrsLoading = false;
+        state.members = action.payload;
+      })
+      .addCase(getMembers.rejected, (state, action) => {
+        state.mbrsLoading = false;
+        state.mbrsError = action.payload;
       });
   },
 });
@@ -348,5 +389,6 @@ export const {
   addGroupMessage,
   setPrivateMessages,
   setGroupMessages,
+  setSelectedChat,
 } = chatDetail.actions;
 export default chatDetail.reducer;

@@ -16,13 +16,15 @@ export default function ChatApp() {
     }
   };
 
-  if (calling) return <VideoCallScreen />;
-console.log(selectedChat, chatType)
+  // if (calling) return <VideoCallScreen />;
+
   return (
-    <div className="flex h-screen">
-      {/* ChatSidebar fixed within content section, not full page sidebar */}
-      <div className="w-72 border-r border-gray-200 bg-white shadow-md">
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-72 bg-white border-r border-gray-200 shadow-md">
         <ChatSidebar
+         selectedChat={selectedChat}
+         chatType={chatType}
           onSelectChat={(chat, type) => {
             setSelectedChat(chat);
             setChatType(type);
@@ -31,13 +33,13 @@ console.log(selectedChat, chatType)
         />
       </div>
 
-      {/* ChatWindow scrollable */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Chat window */}
+      <div className="flex-1 overflow-hidden flex flex-col">
         {selectedChat ? (
           <ChatWindow selectedChat={selectedChat} chatType={chatType} />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            Loading chat...
+          <div className="flex items-center justify-center flex-1 text-gray-500 text-lg">
+            Select a chat to start messaging
           </div>
         )}
       </div>

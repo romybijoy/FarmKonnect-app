@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { fetchFollowing } from "../../redux/slices/FollowSlice";
-import { getAllGroups } from "../../redux/slices/ChatSlice";
+import { getAllGroups, setSelectedChat } from "../../redux/slices/ChatSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import CreateGroupModal from "./CreateGroupModal";
 import { createGroup } from "../../redux/slices/ChatSlice";
 import { toast } from "react-toastify";
 
-export default function ChatSidebar({ onSelectChat, onChatsLoaded }) {
-  const [selectedId, setSelectedId] = useState(null);
-  const [selectedType, setSelectedType] = useState(null);
+export default function ChatSidebar({ selectedChat, chatType, onSelectChat, onChatsLoaded }) {
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [groupName, setGroupName] = useState("");
   const me = JSON.parse(localStorage.getItem("myInfo")) || [];
@@ -17,7 +15,8 @@ export default function ChatSidebar({ onSelectChat, onChatsLoaded }) {
     me?.id ? [me.id] : []
   );
   const dispatch = useDispatch();
-
+  const selectedChatId = useSelector((state) => state.chat.selectedChatId);
+  const selectedType = useSelector((state) => state.chat.selectedType);
   const { following, globalLoading } = useSelector((state) => state.follow);
   const { groups, groupLoading } = useSelector((state) => state.chat);
 
@@ -30,11 +29,10 @@ export default function ChatSidebar({ onSelectChat, onChatsLoaded }) {
 
   useEffect(() => {
     if (following?.length > 0) {
-      console.log(following);
       const firstUser = following[0];
-      if (!selectedId && !selectedType) {
-        setSelectedId(firstUser.id);
-        setSelectedType("private");
+      if (!selectedChatId && !selectedType) {
+        // setSelectedChatId(firstUser.id);
+        // setSelectedType("private");
         onSelectChat(firstUser, "private");
       }
 
@@ -47,10 +45,9 @@ export default function ChatSidebar({ onSelectChat, onChatsLoaded }) {
   //   { id: "2", username: "Project Squad" },
   // ];
 
-  const handleSelect = (id, type) => {
-    setSelectedId(id);
-    setSelectedType(type);
-    onSelectChat(id, type);
+  const handleSelect = (chat, type) => {
+    dispatch(setSelectedChat({ chatId: chat.id, type }));
+    onSelectChat(chat, type);
   };
 
   const handleCreateGroup = (groupData) => {
@@ -69,7 +66,7 @@ export default function ChatSidebar({ onSelectChat, onChatsLoaded }) {
       });
   };
 
-  const isSelected = (id, type) => selectedId === id && selectedType === type;
+  const isSelected = (id,type) => selectedChat?.id === id && chatType === type;
   return (
     <div className="w-64 h-full overflow-y-auto bg-white px-3 py-4 border-r font-sans">
       <h2 className="text-lg font-bold text-blue-600 mb-4">Messages</h2>
@@ -79,20 +76,20 @@ export default function ChatSidebar({ onSelectChat, onChatsLoaded }) {
       </h3>
       {following?.length > 0
         ? following.map((u) => {
-            const isUserSelected = isSelected(u.id, "private");
-            const profileImage = u?.profilePicture || "profile.png";
-
             return (
               <div
                 key={u.id}
-                className="flex items-center gap-3 p-2 rounded-md cursor-pointer transition truncate text-sm
-          hover:bg-blue-50 text-gray-800
-          ${isUserSelected ? 'bg-blue-100 text-blue-700 font-semibold' : ''}
-        "
+                className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition truncate text-sm
+    ${
+      isSelected(u.id, "private")
+        ? "bg-blue-100 text-blue-700 font-semibold"
+        : "hover:bg-blue-50 text-gray-800"
+    }
+  `}
                 onClick={() => handleSelect(u, "private")}
               >
                 <img
-                  src={profileImage}
+                  src={u?.profilePicture || "profile.png"}
                   alt={`${u.username || "User"}'s profile`}
                   className="w-8 h-8 rounded-full object-cover"
                 />
@@ -108,7 +105,7 @@ export default function ChatSidebar({ onSelectChat, onChatsLoaded }) {
           ))}
 
       {/* ==== Groups ==== */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center mt-3 justify-between mb-2">
         <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
           Groups
         </h3>
@@ -140,7 +137,7 @@ export default function ChatSidebar({ onSelectChat, onChatsLoaded }) {
     }
   `}
               >
-                <div className="bg-green-500 rounded-full w-10 h-10 flex items-center justify-center text-white text-lg font-bold">
+                <div className="bg-green-500 rounded-full w-9 h-9 flex items-center justify-center text-white text-lg font-bold">
                   {g.name[0]}
                 </div>
                 <div className="truncate">{g.name}</div>

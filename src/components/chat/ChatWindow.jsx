@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import dayjs from "dayjs";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import { appConfig } from "../../config";
@@ -10,20 +11,22 @@ import {
 import { useWebSocket } from "../../context/WebSocketContext";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-
 import { useWebRTC } from "../../context/WebRTCContext";
 import ChatHeader from "./ChatHeader";
 import GroupChatHeader from "./GroupChatHeader";
+import { formatChatDate } from "../common/DateUtils";
+
+import { fetchUserById } from "../../redux/slices/UserSlice";
+import { addOrUpdateReaction, fetchReactions, removeReaction } from "../../redux/slices/ReactionsSlice";
 
 export default function ChatWindow({ selectedChat, chatType }) {
+  // const [userProfiles, setUserProfiles] = useState({});
   const userData = JSON.parse(localStorage.getItem("myInfo"));
-  console.log(selectedChat);
   const dispatch = useDispatch();
   const { startCall } = useWebRTC();
   const { privateMessages, groupMessages, loading, error } = useSelector(
     (state) => state.chat
   );
-  // Get correct message list based on chat type
   const messages =
     chatType === "private"
       ? privateMessages[selectedChat?.id] || []
@@ -32,7 +35,20 @@ export default function ChatWindow({ selectedChat, chatType }) {
   const { sendMessageWS, subscribeToGroup, connected } = useWebSocket();
   const navigate = useNavigate();
 
-  // Fetch messages and subscribe (only subscribe to group channel)
+  const userProfiles = useSelector((state) => state.app.profiles || {});
+
+  const reactionsMap = useSelector(state => state.reactions.byMessageId);
+
+  useEffect(() => {
+    const uniqueSenderIds = [...new Set(messages.map((msg) => msg.senderId))];
+
+    uniqueSenderIds.forEach((id) => {
+      if (!userProfiles[id]) {
+        dispatch(fetchUserById(id));
+      }
+    });
+  }, [messages, dispatch, userProfiles]);
+
   useEffect(() => {
     if (!selectedChat) return;
 
@@ -45,6 +61,12 @@ export default function ChatWindow({ selectedChat, chatType }) {
     }
   }, [selectedChat?.id, chatType, dispatch, connected, subscribeToGroup]);
 
+   useEffect(() => {
+    messages.forEach((message) => {
+      dispatch(fetchReactions(message.id));
+    });
+  }, [messages, dispatch]);
+
   const onSend = (message) => {
     if (!connected) {
       console.warn("WebSocket is not connected. Please wait...");
@@ -52,60 +74,48 @@ export default function ChatWindow({ selectedChat, chatType }) {
     }
 
     const destination = "/app/chat.sendMessage";
-    sendMessageWS(destination, message); // WebSocket call
+    sendMessageWS(destination, message);
 
-    // Optimistic UI update
     if (chatType === "private") {
-      // dispatch(addMessage({ message,currentUserId: userData.id}));
+      // dispatch(addMessage({ message, currentUserId: userData.id }));
     } else {
       dispatch(addGroupMessage({ chatId: selectedChat?.id, message }));
     }
   };
 
   const handleCall = (type) => {
-    if (!selectedChat?.id) {
-      alert("Please select a chat first.");
-      return;
-    }
-    navigate(`/call?type=${type}&to=${selectedChat?.id}`);
+    navigate(`/call/${selectedChat.id}`, {
+      state: {
+        selectedChat,
+        callType: type,
+      },
+    });
   };
 
+  const handleReact = (messageId, emoji) => {
+    const userId = userData.id;
+
+    const existingReactions = reactionsMap[messageId] || [];
+    const myReaction = existingReactions.find((r) => r.userId === userId);
+
+    if (myReaction?.emoji === emoji) {
+      dispatch(removeReaction({ messageId, userId }));
+    } else {
+      dispatch(addOrUpdateReaction({ messageId, userId, emoji }));
+    }
+  };
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow-inner">
+    <div className="flex flex-col h-full bg-gray-50 rounded-lg shadow overflow-hidden">
       {/* Header */}
       {chatType === "private" && selectedChat && (
-        <div className="flex justify-between items-center px-4 py-2 bg-white border-b border-gray-300">
-          <div className="flex items-center gap-3">
-            <img
-              src={selectedChat?.profilePicture || "profile.png"}
-              alt="Profile"
-              className="w-10 h-10 rounded-full object-cover"
-            />
-            <ChatHeader
-              email={selectedChat?.email}
-              username={selectedChat?.username}
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() =>
-                navigate(`/call/video/${selectedChat?.id}`, {
-                  state: { selectedChat },
-                })
-              }
-              className="p-2 bg-blue-500 rounded text-white"
-            >
-              🎥
-            </button>
-          </div>
-        </div>
+        <ChatHeader selectedChat={selectedChat} onCall={handleCall} />
       )}
 
       {chatType === "group" && selectedChat && (
         <GroupChatHeader groupInfo={selectedChat} />
       )}
 
-      {/* Scrollable Messages */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-100">
         {loading && (
           <div className="text-center text-sm text-gray-500">
@@ -122,17 +132,46 @@ export default function ChatWindow({ selectedChat, chatType }) {
             No messages yet. Start the conversation!
           </div>
         )}
-        {messages?.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            currentUserId={userData.id}
-          />
-        ))}
+
+        {messages.map((message, index) => {
+          const profile = userProfiles[message.senderId];
+
+          const showDate =
+            index === 0 ||
+            !dayjs(message.timestamp).isSame(
+              messages[index - 1].timestamp,
+              "day"
+            );
+
+          const isSameSender =
+            index > 0 && messages[index - 1].senderId === message.senderId;
+
+          return (
+            <div className="mt-3" key={message.id}>
+              {showDate && (
+                <div className="flex justify-center my-2">
+                  <span className="text-xs text-gray-500 bg-white px-3 py-2 rounded-full shadow">
+                    {formatChatDate(message.timestamp)}
+                  </span>
+                </div>
+              )}
+
+              <MessageBubble
+                messageId={message.id}
+                message={message}
+                currentUserId={userData.id}
+                chatType={chatType}
+                senderProfile={profile}
+                onReact={handleReact}
+                reactions={reactionsMap[message.id] || []} 
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t border-gray-300 px-4 py-3">
+      <div className="bg-white border-t border-gray-200 px-4 py-3">
         <MessageInput
           onSend={onSend}
           selectedChat={selectedChat?.id}
