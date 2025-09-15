@@ -4,26 +4,35 @@ import { fetchPresence } from "../../redux/slices/PresenceSlice";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { makeSelectUserPresence } from "../../selectors/PresenceSelector";
+
 dayjs.extend(relativeTime);
 
-// const selectUserPresence = useSelector(makeSelectUserPresence(email));
-
-const ChatHeader = ({ email, username }) => {
+const ChatHeader = ({ selectedChat, onCall }) => {
   const dispatch = useDispatch();
+  const presence = useSelector(makeSelectUserPresence(selectedChat?.email));
+  const typingByEmail = useSelector((state) => state.typing.typingByEmail);
+  const isTyping = selectedChat?.email && typingByEmail[selectedChat.email];
 
-  const presence = useSelector(makeSelectUserPresence(email));
-
+  console.log('eere' , isTyping)
   useEffect(() => {
-    dispatch(fetchPresence(email));
-    const interval = setInterval(() => dispatch(fetchPresence(email)), 10000);
+    if (!selectedChat?.email) return;
+    dispatch(fetchPresence(selectedChat?.email));
+    const interval = setInterval(
+      () => dispatch(fetchPresence(selectedChat?.email)),
+      10000
+    );
     return () => clearInterval(interval);
-  }, [dispatch, email]);
-console.log(presence)
+  }, [dispatch, selectedChat?.email]);
+
   const renderStatus = () => {
     if (!presence) return null;
 
+    if (isTyping) {
+      return <span className="text-purple-500 animate-pulse">Typing...</span>;
+    }
+
     if (presence.online) {
-      return <span className="text-green-600">Online</span>;
+      return <span className="text-green-600 font-medium">Online</span>;
     }
 
     if (presence.lastSeen) {
@@ -37,12 +46,49 @@ console.log(presence)
     return null;
   };
 
-  if (!presence) return <span className="text-gray-400">Loading...</span>;
-
   return (
-    <div className="flex flex-col px-4 py-2 bg-white">
-      <span className="font-semibold text-lg">{username}</span>
-      <span className="text-sm">{renderStatus()}</span>
+    <div className="flex justify-between items-center px-4 py-3 bg-white border-b border-gray-200 shadow-sm">
+      <div className="flex items-center gap-3">
+        <img
+          src={selectedChat?.profilePicture || "/profile.png"}
+          alt="Profile"
+          className="w-10 h-10 rounded-full object-cover"
+        />
+        <div className="flex flex-col">
+          <span className="font-semibold text-base text-gray-900">
+            {selectedChat?.username}
+          </span>
+          <span className="text-sm">
+            {presence ? (
+              renderStatus()
+            ) : (
+              <span className="text-gray-400">Loading...</span>
+            )}
+          </span>
+
+          {typingByEmail?.[selectedChat?.id] && (
+            <p className="text-sm text-gray-500">
+              {typingByEmail?.[selectedChat?.id]} is typing...
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onCall("audio")}
+          className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow"
+          title="Start audio call"
+        >
+          📞
+        </button>
+        <button
+          onClick={() => onCall("video")}
+          className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full shadow"
+          title="Start video call"
+        >
+          🎥
+        </button>
+      </div>
     </div>
   );
 };

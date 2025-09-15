@@ -13,7 +13,7 @@ import Register from "./pages/auth/Register";
 import VerifyOtp from "./pages/auth/VerifyOtp";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
-import VideoCallPage from "./components/call/VideoCallPage";
+import CallPage from "./components/call/CallPage";
 
 function AppRoutes() {
   return (
@@ -26,7 +26,7 @@ function AppRoutes() {
       <Route path="/set-Password" element={<ResetPassword />} />
 
       {/* Call screen route */}
-      <Route path="/call" element={<VideoCallPage />} />
+      <Route path="/call" element={<CallPage />} />
 
       {/* Protected area */}
       <Route
