@@ -14,8 +14,7 @@ const NotificationPanel = () => {
   const userData = JSON.parse(localStorage.getItem("myInfo"));
   useEffect(() => {
     if (userData) {
-     
-      dispatch(fetchNotifications({id: userData.id}));
+      dispatch(fetchNotifications({ id: userData.id }));
     }
   }, [dispatch, userData]);
 
@@ -23,13 +22,17 @@ const NotificationPanel = () => {
     <div className="p-4 bg-white shadow rounded-md max-w-md mx-auto">
       <NotificationHeader userId={userData.id} />
 
-      {loading && <p>Loading...</p>}
+      {/* {loading && <p>Loading...</p>} */}
 
-      <ul className="divide-y">
-        {notifications.map((notif) => (
-         <NotificationItem key={notif._id} notification={notif} />
-        ))}
-      </ul>
+      {notifications.length === 0 ? (
+        <div className="text-center text-gray-500 py-4">No notifications yet</div>
+      ) : (
+        <ul className="divide-y">
+          {notifications.map((notif) => (
+            <NotificationItem key={notif.id} notification={notif} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 };
