@@ -155,12 +155,12 @@ function Sidebar() {
                 onClick={handleNavClick}
               >
                 <FaPlusSquare className="text-xl" />
-                Create
+                Create Post
               </NavLink>
-              <div className="flex items-center gap-4 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100">
+              {/* <div className="flex items-center gap-4 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100">
                 <FaUsers className="text-lg" />
                 Groups
-              </div>
+              </div> */}
               <NavLink
                 to="/profile"
                 className={navItemClasses}
@@ -171,7 +171,6 @@ function Sidebar() {
               </NavLink>
             </nav>
           </div>
-
           {/* Bottom Section */}
           <div className="border-t pt-4">
             <div
