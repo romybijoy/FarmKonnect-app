@@ -11,7 +11,7 @@ import store from "../redux/store";
 import { useSelector } from "react-redux";
 import { addMessage, addGroupMessage } from "../redux/slices/ChatSlice";
 import { useSignal } from "./SignalContext";
-
+import { setTypingStatus } from "../redux/slices/TypingSlice";
 // 1️⃣ Create Context
 const WebSocketContext = createContext();
 
@@ -117,6 +117,26 @@ export const WebSocketProvider = ({ children }) => {
           );
           subscriptions.current.set(`notification-${userId}`, notificationSub);
 
+          const typingPrivateSub = stompClient.current.subscribe(
+            `/user/queue/typing`,
+            (msg) => {
+              const typingPayload = JSON.parse(msg.body);
+              store.dispatch(setTypingStatus(typingPayload)); // you handle UI in Redux
+            }
+          );
+          subscriptions.current.set(
+            `typing-private-${userId}`,
+            typingPrivateSub
+          );
+
+          // const typingGroupSub = stompClient.current.subscribe(
+          //   `/topic/typing/group/${groupId}`,
+          //   (msg) => {
+          //     const typingPayload = JSON.parse(msg.body);
+          //     store.dispatch(setTypingStatus(typingPayload)); // same reducer
+          //   }
+          // );
+          // subscriptions.current.set(`typing-group-${groupId}`, typingGroupSub);
           resolve();
         },
         (error) => {
@@ -128,7 +148,7 @@ export const WebSocketProvider = ({ children }) => {
     });
   };
 
-    const disconnectWebSocket = () => {
+  const disconnectWebSocket = () => {
     if (stompClient.current) {
       subscriptions.current.forEach((sub) => sub.unsubscribe());
       subscriptions.current.clear();
@@ -148,6 +168,17 @@ export const WebSocketProvider = ({ children }) => {
     }
   };
 
+  const sendTypingStatus = ({ email, isTyping, receiverId, groupId }) => {
+    const payload = { email, isTyping };
+    console.log("dfdfdfdf");
+    if (receiverId) payload.receiverId = receiverId;
+    else if (groupId) {
+      payload.groupId = groupId;
+    }
+
+    sendMessageWS("/app/typing", payload);
+  };
+
   const subscribeToGroup = (groupId) => {
     if (!stompClient.current || !stompClient.current.connected) {
       console.warn("WebSocket not connected: cannot subscribe to group.");
@@ -164,6 +195,17 @@ export const WebSocketProvider = ({ children }) => {
     );
 
     subscriptions.current.set(`group-${groupId}`, groupSub);
+
+    // Group typing subscription
+  const typingGroupSub = stompClient.current.subscribe(
+    `/topic/typing/group/${groupId}`,
+    (msg) => {
+      const typingPayload = JSON.parse(msg.body);
+      store.dispatch(setTypingStatus(typingPayload));
+      console.log("Group typing received:", typingPayload);
+    }
+  );
+  subscriptions.current.set(`typing-group-${groupId}`, typingGroupSub);
   };
 
   // Clean up
@@ -179,6 +221,7 @@ export const WebSocketProvider = ({ children }) => {
         connectWebSocket,
         disconnectWebSocket,
         sendMessageWS,
+        sendTypingStatus,
         subscribeToGroup,
         connected,
       }}
