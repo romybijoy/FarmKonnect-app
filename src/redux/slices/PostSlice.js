@@ -11,11 +11,10 @@ const userData = JSON.parse(localStorage.getItem("myInfo"));
 export const createPost = createAsyncThunk(
   "createPost",
   async (data, { rejectWithValue, fulfillWithValue }) => {
-    console.log(data)
     const input = {
       content: data.content,
       postImage: data.image, // this should be a Firebase URL string
-      email: userData?.email
+      email: userData?.email,
     };
 
     try {
@@ -40,7 +39,6 @@ export const createPost = createAsyncThunk(
     }
   }
 );
-
 
 //read action
 export const showPost = createAsyncThunk(
@@ -68,7 +66,235 @@ export const showPost = createAsyncThunk(
   }
 );
 
+export const showFeed = createAsyncThunk(
+  "showFeed",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetchWithAuth(`${ip}/feed/${userData?.id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        return rejectWithValue(errorData);
+      }
+
+      const result = await response.json();
+      console.log(result);
+      return result;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const likePost = createAsyncThunk(
+  "posts/likePost",
+  async ({ postId }, { getState }) => {
+    const userId = JSON.parse(localStorage.getItem("myInfo")).id;
+    const state = getState().post;
+    const isLiked = state.likesByPostId[postId]?.liked || false;
+
+    if (isLiked) {
+      await fetchWithAuth(`${ip}/post/${postId}/like?userId=${userId}`, {
+        method: "DELETE",
+      });
+    } else {
+      await fetchWithAuth(`${ip}/post/${postId}/like?userId=${userId}`, {
+        method: "POST",
+      });
+    }
+
+    const likeCountRes = await fetchWithAuth(`${ip}/post/${postId}/like-count`);
+    const likeCount = await likeCountRes.json();
+
+    const statusRes = await fetchWithAuth(
+      `${ip}/post/${postId}/like-status?userId=${userId}`
+    );
+    const liked = await statusRes.json();
+
+    return { postId, liked, likeCount };
+  }
+);
+
+export const unlikePost = createAsyncThunk(
+  "posts/likePost",
+  async (postId, thunkAPI) => {
+    try {
+      const response = await fetchWithAuth(
+        `${ip}/${postId}/like?userId=${userData.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to unlike post");
+      const data = await response.json(); // { liked, likeCount }
+
+      return { postId, ...data };
+    } catch (err) {
+      return thunkAPI.rejectWithValue(err.message);
+    }
+  }
+);
+
+// ✅ Fetch like count for a post
+export const fetchLikeCount = createAsyncThunk(
+  "posts/fetchLikeCount",
+  async (postId, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/post/${postId}/like-count`);
+      if (!res.ok) {
+        throw new Error("Failed to fetch like count");
+      }
+      const data = await res.json(); // { count: 42 }
+      return { postId, likeCount: data.count };
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+// ✅ Fetch like status for a user + post
+export const fetchLikeStatus = createAsyncThunk(
+  "posts/fetchLikeStatus",
+  async ({ postId, userId }, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(
+        `${ip}/post/${postId}/like-status?userId=${userId}`
+      );
+      if (!res.ok) {
+        throw new Error("Failed to fetch like status");
+      }
+      const data = await res.json(); // { liked: true }
+      return { postId, liked: data.liked };
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+// export const toggleSavePost = createAsyncThunk(
+//   "posts/savePost",
+//   async ({ postId, userId }, { rejectWithValue }) => {
+//     try {
+//       const res = await fetchWithAuth(`${ip}/feed/save/${postId}`, {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${token}`,
+//           userId: userId,
+//         },
+//       });
+
+//       if (!res.ok) {
+//         const errorText = await res.text();
+//         return rejectWithValue(errorText || "Failed to save post");
+//       }
+
+//       const data = await res.json();
+//       return { postId, saved: data.saved };
+//     } catch (error) {
+//       return rejectWithValue(error.message || "Save post failed");
+//     }
+//   }
+// );
+
+export const toggleSavePost = createAsyncThunk(
+  "posts/toggleSavePost",
+  async ({ postId, userId }, { getState }) => {
+    const state = getState().post;
+    const isSaved = state.savedByPostId[postId].saved || false;
+
+    if (isSaved) {
+      await fetchWithAuth(`${ip}/post/${postId}/save?userId=${userId}`, {
+        method: "DELETE",
+      });
+    } else {
+      await fetchWithAuth(`${ip}/post/${postId}/save?userId=${userId}`, {
+        method: "POST",
+      });
+    }
+
+    const saveCountRes = await fetchWithAuth(`${ip}/post/${postId}/save-count`);
+    const saveCount = await saveCountRes.json();
+
+    const statusRes = await fetchWithAuth(
+      `${ip}/post/${postId}/save-status?userId=${userId}`
+    );
+    const saved = await statusRes.json();
+
+    return { postId, saved, count };
+  }
+);
+
+export const getSavedPosts = createAsyncThunk(
+  "posts/getSavedPosts",
+  async ({ userId }, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/post/saved/${userId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const error = await res.text();
+        return rejectWithValue(error || "Failed to fetch saved posts");
+      }
+
+      const posts = await res.json();
+      return posts; // this will be a list of Post objects
+    } catch (error) {
+      return rejectWithValue(error.message || "Fetch failed");
+    }
+  }
+);
+
+// fetch save status
+export const fetchSaveStatus = createAsyncThunk(
+  "posts/fetchSaveStatus",
+  async ({ postId, userId }) => {
+    const res = await fetchWithAuth(
+      `${ip}/post/${postId}/save-status?userId=${userId}`
+    );
+    const saved = await res.json();
+    return { postId, saved };
+  }
+);
+
+// fetch save count
+export const fetchSaveCount = createAsyncThunk(
+  "posts/fetchSaveCount",
+  async (postId) => {
+    const res = await fetchWithAuth(`${ip}/post/${postId}/save-count`);
+    const count = await res.json();
+    return { postId, count };
+  }
+);
+
+export const repostPost = createAsyncThunk(
+  "posts/repostPost",
+  async ({ originalPostId, userId }) => {
+    const res = await fetchWithAuth(`${ip}/feed/repost/${originalPostId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        userId, // Assuming you're sending this in header
+      },
+      body: JSON.stringify({ originalPostId }),
+    });
+    if (!res.ok) throw new Error("Failed to repost");
+    const data = await res.json(); // { newPostId: "..."}
+    return data;
+  }
+);
 // export const showPostByKeyword = createAsyncThunk('showPostByKeyword', async (data, { rejectWithValue }) => {
 //   console.log(data.page)
 //   try{
@@ -94,27 +320,27 @@ export const showPost = createAsyncThunk(
 //   }
 // })
 
-// //update action
-// export const fetchPostById = createAsyncThunk(
-//   "fetchPostById",
-//   async (id, { rejectWithValue }) => {
-//     const response = await fetch(`${appConfig.ip}/post/${id}`, {
-//       method: "GET",
-//       headers: {
-//         "Content-Type": "application/json",
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
+//update action
+export const fetchPostById = createAsyncThunk(
+  "fetchPostById",
+  async (id, { rejectWithValue }) => {
+    const response = await fetch(`${appConfig.ip}/post/${id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-//     try {
-//       const result = await response.json();
-//       console.log(result);
-//       return result;
-//     } catch (error) {
-//       return rejectWithValue(error);
-//     }
-//   }
-// );
+    try {
+      const result = await response.json();
+      console.log(result);
+      return result;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
 
 // //delete action
 // export const deletePost = createAsyncThunk(
@@ -172,6 +398,12 @@ export const postDetail = createSlice({
     error: null,
     searchData: [],
     count: 0,
+    likesByPostId: {}, // postId: { liked: boolean, likeCount: number }
+    savedByPostId: {},
+    saveCountsByPostId: {},
+    savedPosts: [],
+    savedPostsLoading: false,
+    savedPostsError: null,
   },
 
   reducers: {
@@ -206,31 +438,106 @@ export const postDetail = createSlice({
         state.loading = false;
         state.posts = [];
         state.error = action.payload.message;
+      })
+      .addCase(showFeed.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(showFeed.fulfilled, (state, action) => {
+        state.loading = false;
+        state.posts = action.payload;
+      })
+      .addCase(showFeed.rejected, (state, action) => {
+        state.loading = false;
+        state.posts = [];
+        state.error = action.payload.message;
+      })
+
+      .addCase(likePost.fulfilled, (state, action) => {
+        const { postId, liked, likeCount } = action.payload;
+        state.likesByPostId[postId] = {
+          liked: liked.liked,
+          likeCount: likeCount.count,
+        };
+      })
+
+      .addCase(likePost.rejected, (state, action) => {
+        console.error("Failed to like post:", action.error);
+      })
+      .addCase(fetchLikeCount.fulfilled, (state, action) => {
+        const { postId, likeCount } = action.payload;
+        state.likesByPostId[postId] = {
+          ...(state.likesByPostId[postId] || {}),
+          likeCount,
+        };
+      })
+      .addCase(fetchLikeStatus.fulfilled, (state, action) => {
+        const { postId, liked } = action.payload;
+        state.likesByPostId[postId] = {
+          ...(state.likesByPostId[postId] || {}),
+          liked: liked,
+        };
+      })
+      // SAVE
+      .addCase(toggleSavePost.fulfilled, (state, action) => {
+        const { postId, saved, saveCount } = action.payload;
+        
+         state.savedByPostId[postId] = {
+          saved,
+          count,
+        };
+        
+      })
+      .addCase(getSavedPosts.pending, (state) => {
+        state.savedPostsLoading = true;
+        state.savedPostsError = null;
+      })
+      .addCase(getSavedPosts.fulfilled, (state, action) => {
+        console.log(action.payload);
+        state.savedPosts = action.payload;
+        state.savedPostsLoading = false;
+      })
+      .addCase(getSavedPosts.rejected, (state, action) => {
+        state.savedPostsError = action.payload;
+        state.savedPostsLoading = false;
+      })
+      .addCase(fetchSaveStatus.fulfilled, (state, action) => {
+        const { postId, saved } = action.payload;
+        state.savedByPostId[postId] = saved;
+         state.savedByPostId[postId] = {
+          ...(state.savedByPostId[postId] || {}),
+          saved,
+        };
+      })
+      .addCase(fetchSaveCount.fulfilled, (state, action) => {
+        const { postId, count } = action.payload;
+         state.savedByPostId[postId] = {
+          ...(state.savedByPostId[postId] || {}),
+          count,
+        };
+      })
+      .addCase(repostPost.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(repostPost.fulfilled, (state, action) => {
+        state.loading = false;
+        // Optionally show a message or refetch posts
+      })
+      .addCase(repostPost.rejected, (state, action) => {
+        state.loading = false;
+        console.error("Repost error:", action.error.message);
+      })
+
+      .addCase(fetchPostById.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchPostById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.post = action.payload.post;
+      })
+      .addCase(fetchPostById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload.message;
       });
-    //   .addCase(showPostByKeyword.pending, (state) => {
-    //     state.loading = true;
-    //   })
-    //   .addCase(showPostByKeyword.fulfilled, (state, action) => {
-    //     state.loading = false;
-    //     state.categories = action.payload.content;
-    //     state.count = action.payload.totalElements;
-    //   })
-    //   .addCase(showPostByKeyword.rejected, (state, action) => {
-    //     state.loading = false;
-    //     state.categories = [];
-    //     state.error = action.payload;
-    //   })
-    // .addCase(fetchPostById.pending, (state) => {
-    //   state.loading = true;
-    // })
-    // .addCase(fetchPostById.fulfilled, (state, action) => {
-    //   state.loading = false;
-    //   state.post = action.payload.post;
-    // })
-    // .addCase(fetchPostById.rejected, (state, action) => {
-    //   state.loading = false;
-    //   state.error = action.payload.message;
-    // })
     // .addCase(deletePost.pending, (state) => {
     //   state.loading = true;
     // })

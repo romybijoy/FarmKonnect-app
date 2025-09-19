@@ -7,6 +7,8 @@ import Post from "../posts/Post";
 import Followers from "../profileTabs/followers/Followers";
 import Following from "../profileTabs/following/Following";
 import Groups from "../profileTabs/groups/Groups";
+import SavedPosts from "../posts/SavedPosts";
+import PostsList from "../posts/PostsList";
 
 const ProfilePostsPart = ({ user, post }) => {
   const [activeTab, setActiveTab] = useState("Post");
@@ -31,9 +33,12 @@ const ProfilePostsPart = ({ user, post }) => {
         case "Following":
           setData([]);
           break;
-        case "Groups":
-          setData([]); // simulate no groups
+        case "Saved Post":
+          setData([]);
           break;
+        // case "Groups":
+        //   setData([]); // simulate no groups
+        //   break;
         default:
           setData([]);
       }
@@ -44,13 +49,15 @@ const ProfilePostsPart = ({ user, post }) => {
   const renderComponent = () => {
     switch (activeTab) {
       case "Post":
-        return <Post data={post} />;
+        return <PostsList posts={post} />;
       case "Followers":
         return <Followers profileUserId={user.id} viewerId={user.id} />;
       case "Following":
         return <Following profileUserId={user.id} viewerId={user.id} />;
-      case "Groups":
-        return <Groups data={data} />;
+        case "Saved Posts":
+        return <SavedPosts userId={user.id} />;
+      // case "Groups":
+      //   return <Groups data={data} />;
       default:
         return null;
     }
@@ -67,7 +74,8 @@ const ProfilePostsPart = ({ user, post }) => {
     { tab: "Post", icon: <AiOutlineTable /> },
     { tab: "Followers", icon: <RiVideoLine /> },
     { tab: "Following", icon: <BiBookmark /> },
-    { tab: "Groups", icon: <AiOutlineUser /> },
+    { tab: "Saved Posts", icon: <BiBookmark /> },
+    // { tab: "Groups", icon: <AiOutlineUser /> },
   ];
 
   return (

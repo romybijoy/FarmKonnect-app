@@ -12,9 +12,8 @@ const Home = () => {
 
   const userData = JSON.parse(localStorage.getItem("userInfo"));
   useEffect(() => {
-
-  // preload user list
-      const cachedUsers = localStorage.getItem("userList");
+    // preload user list
+    const cachedUsers = localStorage.getItem("userList");
     if (cachedUsers === undefined) {
       dispatch(setUsers(JSON.parse(cachedUsers)));
     } else {
@@ -23,7 +22,7 @@ const Home = () => {
       });
     }
 
-
+    
     dispatch(getProf({ email: userData.email }));
 
     const checkBlockedStatus = async () => {
@@ -48,17 +47,21 @@ const Home = () => {
     // return () => clearInterval(interval);
   }, [dispatch, navigate, userData.email]);
 
-
   return (
-    <div className="container-fluid">
-      <div className="row vh-100">
-        <div className="col-md-6 col-12">
+     <div className="flex h-screen bg-gray-50">
+      {/* Feed - scrollable */}
+      <main className="flex-1 overflow-y-auto scrollbar-hide">
+        <div className="max-w-2xl mx-auto">
           <Feed />
         </div>
-        <div className="col-md-6 col-12">
+      </main>
+
+      {/* Suggestions - force visible */}
+      <aside className="w-80 border-l border-gray-200 bg-white">
+        <div className="sticky top-0 h-screen p-4 overflow-y-auto">
           <Suggestions />
         </div>
-      </div>
+      </aside>
     </div>
   );
 };
