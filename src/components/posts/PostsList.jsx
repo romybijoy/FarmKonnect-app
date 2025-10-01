@@ -9,6 +9,8 @@ import {
   fetchSaveCount,
 } from "../../redux/slices/PostSlice";
 
+import { fetchCommentCount } from "../../redux/slices/CommentSlice";
+
 function PostsList({ posts }) {
   if (!posts || posts.length === 0) return <NoPosts />;
   const userData = JSON.parse(localStorage.getItem("myInfo"));
@@ -20,6 +22,7 @@ function PostsList({ posts }) {
         dispatch(fetchLikeStatus({ postId: post.id, userId: userData.id }));
         dispatch(fetchSaveStatus({ postId: post.id, userId: userData.id }));
         dispatch(fetchSaveCount(post.id));
+        dispatch(fetchCommentCount(post.id));
       });
     }
   }, [posts, dispatch, userData.id]);

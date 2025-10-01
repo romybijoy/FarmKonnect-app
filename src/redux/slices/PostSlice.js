@@ -179,32 +179,6 @@ export const fetchLikeStatus = createAsyncThunk(
   }
 );
 
-// export const toggleSavePost = createAsyncThunk(
-//   "posts/savePost",
-//   async ({ postId, userId }, { rejectWithValue }) => {
-//     try {
-//       const res = await fetchWithAuth(`${ip}/feed/save/${postId}`, {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//           Authorization: `Bearer ${token}`,
-//           userId: userId,
-//         },
-//       });
-
-//       if (!res.ok) {
-//         const errorText = await res.text();
-//         return rejectWithValue(errorText || "Failed to save post");
-//       }
-
-//       const data = await res.json();
-//       return { postId, saved: data.saved };
-//     } catch (error) {
-//       return rejectWithValue(error.message || "Save post failed");
-//     }
-//   }
-// );
-
 export const toggleSavePost = createAsyncThunk(
   "posts/toggleSavePost",
   async ({ postId, userId }, { getState }) => {
@@ -339,6 +313,16 @@ export const fetchPostById = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error);
     }
+  }
+);
+
+export const hidePost = createAsyncThunk(
+  "post/hidePost",
+  async ({ userId, postId }) => {
+    await fetchWithAuth(`${ip}/feed/${userId}/hide/${postId}`, {
+      method: "POST",
+    });
+    return postId; // we only need to remove it locally
   }
 );
 
@@ -485,7 +469,6 @@ export const postDetail = createSlice({
           saved,
           count,
         };
-        
       })
       .addCase(getSavedPosts.pending, (state) => {
         state.savedPostsLoading = true;
@@ -537,7 +520,10 @@ export const postDetail = createSlice({
       .addCase(fetchPostById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
-      });
+      })
+      .addCase(hidePost.fulfilled, (state, action) => {
+      state.posts = state.posts.filter((p) => p.id !== action.payload);
+    });
     // .addCase(deletePost.pending, (state) => {
     //   state.loading = true;
     // })

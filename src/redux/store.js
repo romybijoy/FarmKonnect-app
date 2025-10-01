@@ -10,6 +10,7 @@ import PresenceSlice from "./slices/PresenceSlice";
 import TypingSlice from "./slices/TypingSlice";
 import ReactionsSlice from "./slices/ReactionsSlice";
 import { ApiSlice } from "./slices/ApiSlice";
+import CommentSlice from "./slices/CommentSlice"
 
 const store = configureStore({
   reducer: {
@@ -24,7 +25,8 @@ const store = configureStore({
     notifications: NotificationSlice,
     presence: PresenceSlice,
     typing: TypingSlice,
-    reactions: ReactionsSlice
+    reactions: ReactionsSlice,
+    comments: CommentSlice
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }).concat(

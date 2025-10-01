@@ -6,19 +6,25 @@ import {
   likePost,
   toggleSavePost,
   repostPost,
+  hidePost
 } from "../../redux/slices/PostSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { FaShare } from "react-icons/fa";
+import CommentSection from "./CommentSection";
 
 function Post({ post }) {
   const [expandedPosts, setExpandedPosts] = useState({});
   const [dropdownOpen, setDropdownOpen] = useState({});
   const dispatch = useDispatch();
   const [dropdownPostId, setDropdownPostId] = useState(null);
+  const [showComments, setShowComments] = useState(false);
   const dropdownRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem("myInfo"));
   const { savedByPostId, saveCountsByPostId } = useSelector(
     (state) => state.post
+  );
+  const commentCount = useSelector(
+    (state) => state.comments.counts[post.id] || 0
   );
 
   const likeData = useSelector((state) => state.post.likesByPostId[post?.id]);
@@ -120,12 +126,19 @@ function Post({ post }) {
                   >
                     {isSaved ? "Unsave Post" : "Save Post"}
                   </li>
-                  <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                    Delete
+                  <li
+                    onClick={() =>
+                      dispatch(
+                        hidePost({ postId: post.id, userId: userData.id })
+                      )
+                    }
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  >
+                    Remove from Feed
                   </li>
-                  <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                  {/* <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
                     Report
-                  </li>
+                  </li> */}
                 </ul>
               </div>
             )}
@@ -159,8 +172,8 @@ function Post({ post }) {
               {likeCount ?? 0} {likeCount === 1 ? "like" : "likes"}
             </div>
           </div>
-          <div>60 comments</div>
-          <div>19 reposts</div>
+          <div>{commentCount} comments</div>
+          {/* <div>19 reposts</div> */}
           <div>
             {" "}
             {saveCount ?? 0} {saveCount === 1 ? "save" : "saves"}
@@ -185,7 +198,10 @@ function Post({ post }) {
             ></i>{" "}
             Like
           </button>
-          <button className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded">
+          <button
+            className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
+            onClick={() => setShowComments((prev) => !prev)}
+          >
             <i className="bi bi-chat-left-text"></i> Comment
           </button>
           <button
@@ -202,6 +218,8 @@ function Post({ post }) {
             <FaShare className="text-base" /> Share
           </button>
         </div>
+
+        <div>{showComments && <CommentSection postId={post.id} />}</div>
 
         {post.isRepost && (
           <div className="border border-gray-300 rounded p-3 bg-gray-50 mt-3">
