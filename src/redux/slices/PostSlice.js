@@ -255,18 +255,28 @@ export const fetchSaveCount = createAsyncThunk(
 
 export const repostPost = createAsyncThunk(
   "posts/repostPost",
-  async ({ originalPostId, userId }) => {
-    const res = await fetchWithAuth(`${ip}/feed/repost/${originalPostId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        userId, // Assuming you're sending this in header
-      },
-      body: JSON.stringify({ originalPostId }),
-    });
-    if (!res.ok) throw new Error("Failed to repost");
-    const data = await res.json(); // { newPostId: "..."}
-    return data;
+  async ({ postId, userId, userDto }, { rejectWithValue }) => {
+    try {
+      const response = await fetchWithAuth(
+        `${ip}/post/${postId}/repost/${userId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userDto),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to repost");
+      }
+
+      const data = await response.json();
+      return data; // return PostDto from backend
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 // export const showPostByKeyword = createAsyncThunk('showPostByKeyword', async (data, { rejectWithValue }) => {
@@ -464,8 +474,8 @@ export const postDetail = createSlice({
       // SAVE
       .addCase(toggleSavePost.fulfilled, (state, action) => {
         const { postId, saved, saveCount } = action.payload;
-        
-         state.savedByPostId[postId] = {
+
+        state.savedByPostId[postId] = {
           saved,
           count,
         };
@@ -486,30 +496,25 @@ export const postDetail = createSlice({
       .addCase(fetchSaveStatus.fulfilled, (state, action) => {
         const { postId, saved } = action.payload;
         state.savedByPostId[postId] = saved;
-         state.savedByPostId[postId] = {
+        state.savedByPostId[postId] = {
           ...(state.savedByPostId[postId] || {}),
           saved,
         };
       })
       .addCase(fetchSaveCount.fulfilled, (state, action) => {
         const { postId, count } = action.payload;
-         state.savedByPostId[postId] = {
+        state.savedByPostId[postId] = {
           ...(state.savedByPostId[postId] || {}),
           count,
         };
       })
-      .addCase(repostPost.pending, (state) => {
-        state.loading = true;
-      })
       .addCase(repostPost.fulfilled, (state, action) => {
-        state.loading = false;
-        // Optionally show a message or refetch posts
+        // Add the new reposted post to the feed
+        state.posts.unshift(action.payload); // push to top of feed
       })
       .addCase(repostPost.rejected, (state, action) => {
-        state.loading = false;
-        console.error("Repost error:", action.error.message);
+        state.error = action.payload;
       })
-
       .addCase(fetchPostById.pending, (state) => {
         state.loading = true;
       })
@@ -522,8 +527,8 @@ export const postDetail = createSlice({
         state.error = action.payload.message;
       })
       .addCase(hidePost.fulfilled, (state, action) => {
-      state.posts = state.posts.filter((p) => p.id !== action.payload);
-    });
+        state.posts = state.posts.filter((p) => p.id !== action.payload);
+      });
     // .addCase(deletePost.pending, (state) => {
     //   state.loading = true;
     // })

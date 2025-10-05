@@ -6,7 +6,7 @@ import {
   likePost,
   toggleSavePost,
   repostPost,
-  hidePost
+  hidePost,
 } from "../../redux/slices/PostSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { FaShare } from "react-icons/fa";
@@ -49,8 +49,18 @@ function Post({ post }) {
     setDropdownOpen((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // Repost
   const handleRepost = () => {
-    dispatch(repostPost({ originalPostId: post.id, userId: currentUserId }));
+    dispatch(
+      repostPost({
+        postId: post.id,
+        userId: userData.id,
+        userDto: {
+          name: userData.name,
+          profileImage: userData.profileImage,
+        },
+      })
+    );
   };
 
   useEffect(() => {
@@ -77,7 +87,11 @@ function Post({ post }) {
   }
 
   const isExpanded = expandedPosts[post.id];
-  const previewText = post.content.slice(0, 70);
+
+  const content = post.repost
+    ? post.originalPost?.content
+    : post.content || "";
+  const previewText = content.slice(0, 70);
 
   return (
     <div className="p-4 max-w-screen-md mx-auto">
@@ -147,8 +161,8 @@ function Post({ post }) {
 
         <div className="mt-4">
           <div className="text-gray-700 text-sm w-full">
-            {isExpanded ? post.content : previewText}
-            {post.content.length > 70 && (
+            {isExpanded ? content : previewText}
+            {content.length > 70 && (
               <button
                 onClick={() => handleToggleMore(post.id)}
                 className="ml-2 text-blue-500 text-xs"
@@ -206,14 +220,7 @@ function Post({ post }) {
           </button>
           <button
             className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
-            onClick={() =>
-              dispatch(
-                repostPost({
-                  originalPostId: post.id,
-                  userId: userData.id,
-                })
-              )
-            }
+            onClick={handleRepost}
           >
             <FaShare className="text-base" /> Share
           </button>
@@ -221,17 +228,41 @@ function Post({ post }) {
 
         <div>{showComments && <CommentSection postId={post.id} />}</div>
 
-        {post.isRepost && (
-          <div className="border border-gray-300 rounded p-3 bg-gray-50 mt-3">
-            <div className="text-gray-700 text-sm mb-2">
-              <span className="font-semibold">{post.repostedBy}</span>{" "}
-              <span className="text-gray-500">shared this post</span>
+        {/* --- Repost View --- */}
+        {post.repost && post.originalPostId && (
+          <div className="border border-gray-200 rounded-lg bg-gray-50 mt-4 p-3">
+            <div className="text-sm text-gray-500 mb-2">
+              <span className="font-semibold">{post.userName}</span> shared this
+              post
             </div>
 
-            {/* Original Post Content */}
-            <div className="border-l-4 border-blue-500 pl-3 text-sm text-gray-800">
-              <div className="font-medium mb-1">{post.originalPost.userId}</div>
-              <div>{post.originalPost.content}</div>
+            {/* Original Post Preview */}
+            <div className="bg-white border rounded p-3 shadow-sm">
+              <div className="flex items-center mb-2">
+                <img
+                  src={post.originalPost.image}
+                  alt="Original Profile"
+                  className="w-8 h-8 rounded-full mr-2"
+                />
+                <div>
+                  <p className="font-bold text-sm">
+                    {post.originalPost.userName}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(post.originalPost.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <p className="text-gray-700 text-sm">
+                {post.originalPost.content}
+              </p>
+              {post.originalPost.postImage && (
+                <img
+                  src={post.originalPost.postImage}
+                  alt="Original Post"
+                  className="mt-2 rounded-lg"
+                />
+              )}
             </div>
           </div>
         )}
