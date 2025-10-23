@@ -11,7 +11,6 @@ export default function ReactionPopup({
   const popupRef = useRef(null);
   const [activeTab, setActiveTab] = useState("All");
 
-  console.log("ddddd", reactions);
   useEffect(() => {
     function handleClickOutside(event) {
       if (popupRef.current && !popupRef.current.contains(event.target)) {

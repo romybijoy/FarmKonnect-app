@@ -17,10 +17,6 @@ export const fetchPresence = createAsyncThunk(
     try {
       const response = await fetchWithAuth(`${ip}/presence/${email}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
