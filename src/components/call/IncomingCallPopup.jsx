@@ -25,7 +25,6 @@ export default function IncomingCallPopup() {
 
   const handleAccept = async () => {
     setIsCaller(false);
-    console.log("fsdfss", callType);
     await acceptCall(callType); // callType can be 'audio' or 'video'
     navigate(`/call/${callerId}`, {
       state: { user: currentUser, callType: callType },
