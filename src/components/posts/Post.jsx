@@ -89,7 +89,7 @@ function Post({ post }) {
   const isExpanded = expandedPosts[post.id];
 
   const content = post.repost
-    ? post.originalPost?.content
+    ? post.originalPost?.content || ""
     : post.content || "";
   const previewText = content.slice(0, 70);
 

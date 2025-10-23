@@ -20,10 +20,6 @@ export const createPost = createAsyncThunk(
     try {
       const response = await fetchWithAuth(`${ip}/post/create`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(input),
       });
 
@@ -47,9 +43,6 @@ export const showPost = createAsyncThunk(
     try {
       const response = await fetchWithAuth(`${ip}/post/get`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
@@ -72,21 +65,28 @@ export const showFeed = createAsyncThunk(
     try {
       const response = await fetchWithAuth(`${ip}/feed/${userData?.id}`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
+      // Handle non-2xx HTTP statuses safely
       if (!response.ok) {
-        const errorData = await response.json();
-        return rejectWithValue(errorData);
+        let errorMessage = "Server unavailable or returned an error";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData?.message || errorMessage;
+        } catch (_) {
+          // If response is not JSON (like 503 HTML), skip parsing
+        }
+        return rejectWithValue(errorMessage);
       }
 
+      // Parse result normally
       const result = await response.json();
       console.log(result);
       return result;
     } catch (error) {
-      return rejectWithValue(error);
+      // Network error, e.g., backend down or CORS failed
+      console.error("Network or backend failure:", error);
+      return rejectWithValue("Unable to reach the server. Please try again later.");
     }
   }
 );
@@ -121,16 +121,13 @@ export const likePost = createAsyncThunk(
 );
 
 export const unlikePost = createAsyncThunk(
-  "posts/likePost",
+  "posts/unlikePost",
   async (postId, thunkAPI) => {
     try {
       const response = await fetchWithAuth(
         `${ip}/${postId}/like?userId=${userData.id}`,
         {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          method: "DELETE"
         }
       );
       if (!response.ok) throw new Error("Failed to unlike post");
@@ -213,9 +210,6 @@ export const getSavedPosts = createAsyncThunk(
     try {
       const res = await fetchWithAuth(`${ip}/post/saved/${userId}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
 
       if (!res.ok) {
@@ -261,9 +255,6 @@ export const repostPost = createAsyncThunk(
         `${ip}/post/${postId}/repost/${userId}`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify(userDto),
         }
       );
@@ -310,10 +301,6 @@ export const fetchPostById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     const response = await fetch(`${appConfig.ip}/post/${id}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
     });
 
     try {
