@@ -304,6 +304,19 @@ export const showBlockStatus = createAsyncThunk(
   }
 );
 
+export const checkEmailAvailability = createAsyncThunk(
+  "user/checkEmailAvailability",
+  async (email, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${ip}/validate-email?email=${encodeURIComponent(email)}`);
+      if (!res.ok) return rejectWithValue("Unable to check email");
+      return await res.json(); // { valid: boolean, message: string }
+    } catch (e) {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
 export const userDetail = createSlice({
   name: "app",
   initialState: {
@@ -316,6 +329,7 @@ export const userDetail = createSlice({
     message: null,
     currentUser: null,
     profiles: {},
+    emailCheck: { loading: false, valid: null, message: "" },
   },
 
   reducers: {
@@ -463,7 +477,24 @@ export const userDetail = createSlice({
       .addCase(showBlockStatus.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-      });
+      })
+      .addCase(checkEmailAvailability.pending, (state) => {
+        state.emailCheck = { loading: true, valid: null, message: "" };
+      })
+      .addCase(checkEmailAvailability.fulfilled, (state, action) => {
+        state.emailCheck = {
+          loading: false,
+          valid: action.payload?.valid ?? null,
+          message: action.payload?.message ?? "",
+        };
+      })
+      .addCase(checkEmailAvailability.rejected, (state, action) => {
+        state.emailCheck = {
+          loading: false,
+          valid: null,
+          message: action.payload || "Unable to check email",
+        };
+        });
   },
 });
 
