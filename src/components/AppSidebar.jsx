@@ -129,10 +129,10 @@ function Sidebar() {
                 <BiHomeAlt className="text-xl" />
                 Home
               </NavLink>
-              <div className="flex items-center gap-4 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100">
+              {/* <div className="flex items-center gap-4 px-4 py-3 rounded-md text-gray-700 hover:bg-gray-100">
                 <FaSearch className="text-lg" />
                 Search
-              </div>
+              </div> */}
               <NavLink
                 to="/chat"
                 className={navItemClasses}

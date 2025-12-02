@@ -1,140 +1,282 @@
 // PostUploadModal.jsx
-import React, { useState } from "react";
-import { FaImage } from "react-icons/fa";
-import { FiSend, FiX } from "react-icons/fi";
+import React, { useEffect, useRef, useState } from "react";
+import { Modal, Form, Button, Row, Col, Image as RBImage, Spinner } from "react-bootstrap";
+import { FiSend } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-
 import { Firebase } from "../../firebase/config";
 import { createPost } from "../../redux/slices/PostSlice";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
+import ImageCropper from "../../components/ImageUpload/ImageCropper";
 
-export default function PostUploadModal({ isOpen = true, onClose }) {
+/**
+ * PostUploadModal
+ * - select up to 3 images (multiple)
+ * - crop each image one-by-one using ImageCropper (expects a dataURL)
+ * - upload cropped images to Firebase and collect urls
+ * - create post using createPost({ content, postImages })
+ */
+export default function PostUploadModal({ isOpen = false, onClose }) {
   const [text, setText] = useState("");
-  const [image, setImage] = useState(null);
-  const userData = JSON.parse(localStorage.getItem("myInfo"));
+  const [selectedFiles, setSelectedFiles] = useState([]); // [{name, dataUrl}]
+  const [currentIndex, setCurrentIndex] = useState(0); // index of file being cropped
+  const [imgAfterCrop, setImgAfterCrop] = useState([]); // previews of cropped images
+  const [imgUrls, setImgUrls] = useState([]); // uploaded firebase urls
+  const [uploading, setUploading] = useState(false);
+  const [validated, setValidated] = useState(false);
+
+  const userData = JSON.parse(localStorage.getItem("myInfo") || "{}");
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const inputRef = useRef(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => (isMountedRef.current = false);
+  }, []);
+
+  // helper to avoid shadowing global Image constructor
+  const createImage = (src) =>
+    new Promise((resolve, reject) => {
+      try {
+        const img = new window.Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(e);
+        img.src = src;
+      } catch (err) {
+        reject(err);
+      }
+    });
+
   const closeModal = () => {
     if (onClose) onClose();
     setText("");
-    setImage(null);
+    setSelectedFiles([]);
+    setCurrentIndex(0);
+    setImgAfterCrop([]);
+    setImgUrls([]);
+    setValidated(false);
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
     navigate("/home");
   };
 
-  const handleImageUpload = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  // handle file selection (multiple)
+  const handleOnChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-  const storageRef = Firebase.storage().ref(`/image/${file.name}`);
-  
-  storageRef
-    .put(file)
-    .then((snapshot) => {
-      return snapshot.ref.getDownloadURL();
-    })
-    .then((url) => {
-      setImage(url);
-      console.log("Firebase Image URL:", url);
-    })
-    .catch((error) => {
-      console.error("Error uploading image:", error);
+    // limit to maximum 3 total images (already uploaded + new ones)
+    const available = Math.max(0, 3 - imgUrls.length - selectedFiles.length - imgAfterCrop.length);
+    if (available <= 0) {
+      toast.warn("You can only upload up to 3 images");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+
+    const toTake = files.slice(0, available);
+    const readers = toTake.map((file) => {
+      return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res({ name: file.name, dataUrl: r.result });
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
     });
-};
 
+    Promise.all(readers)
+      .then((results) => {
+        setSelectedFiles((prev) => {
+          // if no crop currently active, we will start cropping first new file
+          const next = [...prev, ...results];
+          if (prev.length === 0 && results.length > 0) {
+            setCurrentIndex(0);
+          }
+          return next;
+        });
+      })
+      .catch((err) => {
+        console.error("file read error", err);
+        toast.error("Failed to read selected files");
+      })
+      .finally(() => {
+        if (inputRef.current) inputRef.current.value = "";
+      });
+  };
+
+  // Called by ImageCropper when user finishes cropping current image
+  // imgCroppedArea expected { x, y, width, height } (pixel values or ratios depending on your cropper)
+  const onCropDone = async (imgCroppedArea) => {
+    const fileObj = selectedFiles[currentIndex];
+    if (!fileObj || !imgCroppedArea) return;
+    setUploading(true);
+
+    try {
+      // ensure we have a DOM Image at natural size
+      const img = await createImage(fileObj.dataUrl);
+
+      // compute pixel crop: if crop values are ratios (0..1), convert to pixels
+      const naturalW = img.naturalWidth || img.width;
+      const naturalH = img.naturalHeight || img.height;
+      let px = { x: 0, y: 0, width: naturalW, height: naturalH };
+      if (imgCroppedArea.width <= 1 && imgCroppedArea.height <= 1) {
+        // treat as ratios
+        px = {
+          x: Math.round(imgCroppedArea.x * naturalW),
+          y: Math.round(imgCroppedArea.y * naturalH),
+          width: Math.round(imgCroppedArea.width * naturalW),
+          height: Math.round(imgCroppedArea.height * naturalH),
+        };
+      } else {
+        // assume pixel values already
+        px = {
+          x: Math.round(imgCroppedArea.x),
+          y: Math.round(imgCroppedArea.y),
+          width: Math.round(imgCroppedArea.width),
+          height: Math.round(imgCroppedArea.height),
+        };
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = px.width;
+      canvas.height = px.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, px.x, px.y, px.width, px.height, 0, 0, px.width, px.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+
+      // add preview
+      setImgAfterCrop((prev) => {
+        const next = [...prev];
+        next.push(dataUrl);
+        return next;
+      });
+
+      // upload to Firebase
+      const base64 = dataUrl.split(",")[1];
+      const path = `/product/${Date.now()}_${fileObj.name}`;
+      const storageRef = Firebase.storage().ref(path);
+      const snap = await storageRef.putString(base64, "base64", { contentType: "image/jpeg" });
+      const url = await snap.ref.getDownloadURL();
+
+      setImgUrls((prev) => {
+        const next = [...prev, url].slice(0, 3);
+        return next;
+      });
+
+      // move to next selected file or finish
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < selectedFiles.length) {
+        setCurrentIndex(nextIndex);
+      } else {
+        // done cropping the queued files
+        setSelectedFiles([]);
+        setCurrentIndex(0);
+      }
+      setValidated(true);
+    } catch (err) {
+      console.error("crop/upload error", err);
+      toast.error("Failed to crop/upload image");
+    } finally {
+      if (isMountedRef.current) setUploading(false);
+    }
+  };
+
+  const onCropCancel = () => {
+    // remove current file from queue and continue with next
+    setSelectedFiles((prev) => {
+      const next = [...prev];
+      next.splice(currentIndex, 1);
+      return next;
+    });
+    // if there are still files, currentIndex stays same (next item moved into this index)
+    if (selectedFiles.length <= 1) {
+      setCurrentIndex(0);
+    }
+  };
 
   const handlePost = async () => {
-  try {
-    const result = await dispatch(createPost({ content: text, image: image }));
+    if (uploading) {
+      toast.info("Please wait for uploads to finish");
+      return;
+    }
+    if (!text.trim() && imgUrls.length === 0) {
+      setValidated(true);
+      toast.warn("Please add text or image(s) before posting");
+      return;
+    }
 
-    if (createPost.fulfilled.match(result)) {
+    try {
+      const payload = { content: text.trim(), postImages: imgUrls.slice(0, 3) };
+      const result = await dispatch(createPost(payload)).unwrap();
       toast.success("Post Created Successfully");
-      navigate("/home");
       closeModal();
-    } else {
+    } catch (err) {
+      console.error("createPost error", err);
       toast.error("Failed to create post");
     }
-  } catch (error) {
-    toast.error("Something went wrong");
-  }
-};
+  };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handlePost();
+  };
+
+  // current dataUrl being cropped, derived from selectedFiles[currentIndex]
+  const currentCropImage = selectedFiles[currentIndex]?.dataUrl ?? null;
 
   return (
-    <>
-      {/* Modal Backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-          onClick={closeModal}
-        >
-          {/* Modal Content */}
-          <div
-            className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-xl relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              onClick={closeModal}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
-              <FiX size={20} />
-            </button>
+    <Modal show={isOpen} onHide={closeModal} centered size="xl" dialogClassName="rounded-3" backdrop="static" keyboard>
+      <Modal.Header closeButton>
+        <Modal.Title>Create a Post</Modal.Title>
+      </Modal.Header>
 
-            <h2 className="text-xl font-semibold mb-4">Create a Post</h2>
+      <Modal.Body>
+        <Form noValidate validated={validated} onSubmit={handleSubmit}>
+          <Form.Group controlId="postTextarea" className="mb-3">
+            <Row className="g-2 align-items-start">
+              <Col xs="auto" className="pe-0">
+                {/* using native img for avatar */}
+                <img src={userData.image || "/profile.png"} alt="Avatar" width={56} height={56} style={{ objectFit: "cover", borderRadius: "50%" }} />
+              </Col>
+              <Col>
+                <Form.Control as="textarea" placeholder="What's on your mind?" value={text} onChange={(e) => setText(e.target.value)} rows={4} className="resize-none" />
+                <Form.Control.Feedback type="invalid">Please write something or attach an image.</Form.Control.Feedback>
+              </Col>
+            </Row>
+          </Form.Group>
 
-            {/* User Avatar & Textarea */}
-            <div className="flex items-start gap-3 mb-3">
-              <img
-                src={userData.image || "profile.png"}
-                alt="Avatar"
-                className="w-10 h-10 rounded-full"
-              />
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="What's on your mind?"
-                className="w-full resize-none border-none outline-none text-gray-700 placeholder-gray-500 bg-gray-100 rounded-lg p-2"
-                rows={3}
-              />
-            </div>
+          {/* previews */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+            {imgUrls.map((u, i) => (
+              <img key={i} src={u} alt={`uploaded-${i}`} style={{ width: 100, height: 100, objectFit: "cover", border: "1px solid #ddd", borderRadius: 4 }} />
+            ))}
+            {/* {imgAfterCrop.map((d, i) => d && <img key={"crop-" + i} src={d} alt={`cropped-${i}`} style={{ width: 100, height: 100, objectFit: "cover", border: "1px dashed #bbb", borderRadius: 4 }} />)} */}
+          </div>
 
-            {/* Preview Image */}
-            {image && (
-              <div className="mb-3">
-                <img
-                  src={image}
-                  alt="Preview"
-                  className="w-full max-w-[350px] rounded-lg object-cover"
-                />
-              </div>
-            )}
+          <div className="d-flex justify-content-between align-items-center mt-2">
+            <Form.Group className="my-2 mb-0" controlId="image">
+              <Form.Label style={{ display: "block" }}>Images (max 3)</Form.Label>
+              <Form.Control type="file" accept="image/*" multiple ref={inputRef} onChange={handleOnChange} disabled={uploading || imgUrls.length >= 3} />
+              {currentCropImage && (
+                <div className="mt-3">
+                  <ImageCropper image={currentCropImage} visible={true} onCropDone={onCropDone} onCropCancel={onCropCancel} />
+                  <div className="mt-2">Cropping {currentIndex + 1} of {selectedFiles.length}</div>
+                </div>
+              )}
+              <Form.Control.Feedback type="invalid">Please choose an image</Form.Control.Feedback>
+            </Form.Group>
 
-            {/* Upload + Post */}
-            <div className="flex justify-between items-center mt-4 border-t pt-4">
-              <label className="flex items-center gap-2 text-blue-600 cursor-pointer">
-                <FaImage />
-                <span className="text-sm font-medium">Photo</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </label>
-
-              <button
-                onClick={handlePost}
-                disabled={!text && !image}
-                className="flex items-center gap-1 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 disabled:opacity-50"
-              >
-                <FiSend />
+            <div>
+              <Button type="submit" variant="primary" disabled={uploading || (!text.trim() && imgUrls.length === 0)} className="d-inline-flex align-items-center">
+                {uploading ? <Spinner animation="border" size="sm" className="me-2" /> : <FiSend className="me-2" />}
                 Post
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
-    </>
+        </Form>
+      </Modal.Body>
+    </Modal>
   );
 }

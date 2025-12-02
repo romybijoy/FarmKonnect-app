@@ -208,3 +208,14 @@ body {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+
+/* tighten modal width a bit if needed */
+.modal-dialog {
+  max-width: 520px;
+}
+
+/* textarea placeholder line-height improvements */
+.form-control[as="textarea"]::placeholder {
+  line-height: 1.4;
+}

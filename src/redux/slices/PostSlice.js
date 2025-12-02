@@ -12,8 +12,9 @@ export const createPost = createAsyncThunk(
   "createPost",
   async (data, { rejectWithValue, fulfillWithValue }) => {
     const input = {
+      userId: userData?.id,
       content: data.content,
-      postImage: data.image, // this should be a Firebase URL string
+      postImages: data.postImages, // this should be a Firebase URL string
       email: userData?.email,
     };
 
@@ -323,6 +324,44 @@ export const hidePost = createAsyncThunk(
   }
 );
 
+
+// Example thunk: adjust base URL or fetch wrapper to match your project
+export const reportPost = createAsyncThunk(
+  "post/reportPost",
+  // payload: { postId, reporterId, reason, details }
+  async (payload, { rejectWithValue }) => {
+    try {
+      const { postId, reporterId, reason, details } = payload;
+      const res = await fetchWithAuth(`${ip}/post/${postId}/report`, {
+        method: "POST",
+        // headers: {
+        //   "Content-Type": "application/json",
+        //   // include auth header if your API needs it, e.g. Authorization Bearer ...
+        // },
+        body: JSON.stringify({
+          reporterId,
+          reason,
+          details,
+        }),
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        const message = json?.message || `Failed with status ${res.status}`;
+        return rejectWithValue(message);
+      }
+
+      const data = await res.json();
+      return data; // whatever backend returns, e.g. { success: true }
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
+ 
+
+
 // //delete action
 // export const deletePost = createAsyncThunk(
 //   "deletePost",
@@ -385,6 +424,8 @@ export const postDetail = createSlice({
     savedPosts: [],
     savedPostsLoading: false,
     savedPostsError: null,
+    reportStatus: "idle",
+    reportError: null,
   },
 
   reducers: {
@@ -515,6 +556,20 @@ export const postDetail = createSlice({
       })
       .addCase(hidePost.fulfilled, (state, action) => {
         state.posts = state.posts.filter((p) => p.id !== action.payload);
+      })
+      .addCase(reportPost.pending, (state) => {
+        state.reportStatus = "loading";
+        state.reportError = null;
+      })
+      .addCase(reportPost.fulfilled, (state, action) => {
+        state.reportStatus = "succeeded";
+        state.reportError = null;
+        // optionally store last report or counts: e.g.
+        // state.lastReport = action.payload;
+      })
+      .addCase(reportPost.rejected, (state, action) => {
+        state.reportStatus = "failed";
+        state.reportError = action.payload || action.error.message;
       });
     // .addCase(deletePost.pending, (state) => {
     //   state.loading = true;
