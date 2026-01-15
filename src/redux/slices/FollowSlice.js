@@ -105,6 +105,25 @@ export const fetchFollowing = createAsyncThunk(
   }
 );
 
+export const fetchFollowCounts = createAsyncThunk(
+  "follow/fetchFollowCounts",
+  async (userId, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/follow/count/${userId}`, {
+        method: "GET",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch follow counts");
+      }
+
+      return await res.json();
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
 export const followDetail = createSlice({
   name: "follow",
   initialState: {
@@ -115,6 +134,10 @@ export const followDetail = createSlice({
     globalLoading: false, // for fetchFollowers, fetchFollowing
     error: {},
     globalError: null,
+    followersCount: 0,
+    followingCount: 0,
+    countLoading: false,
+    countError: null,
   },
 
   reducers: {},
@@ -198,6 +221,22 @@ export const followDetail = createSlice({
         state.globalLoading = false;
         state.globalError = action.payload;
         // toast.error(`Error fetching following: ${action.payload}`);
+      })
+
+      //count followers and following
+      .addCase(fetchFollowCounts.pending, (state) => {
+        state.countLoading = true;
+        state.countError = null;
+      })
+      .addCase(fetchFollowCounts.fulfilled, (state, action) => {
+        console.log(action.payload)
+        state.countLoading = false;
+        state.followersCount = action.payload.followerCount;
+        state.followingCount = action.payload.followingCount;
+      })
+      .addCase(fetchFollowCounts.rejected, (state, action) => {
+        state.countLoading = false;
+        state.countError = action.payload;
       });
   },
 });

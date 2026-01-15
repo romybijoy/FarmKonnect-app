@@ -22,7 +22,7 @@ console.log(following)
       <h4>Following</h4>
       {following.map(user => (
         <div key={user.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-          <img src={user.profilePicture} alt="" style={{ width: 50, height: 50, borderRadius: '50%' }} />
+          <img src={user.profilePicture || '/profile.png'} alt="" style={{ width: 50, height: 50, borderRadius: '50%' }} />
           <div style={{ marginLeft: '10px', flex: 1 }}>
             <div>{user.username}</div>
             {/* <div style={{ fontSize: 'small', color: 'gray' }}>{user.description}</div> */}
