@@ -23,7 +23,7 @@ export const markAsRead = createAsyncThunk(
   "notification/markAsRead",
   async (notificationId, { rejectWithValue }) => {
     try {
-      const res = await fetchWithAuth(`${baseUrl}/read/${notificationId}`, {
+      const res = await fetchWithAuth(`${baseUrl}/read/${notificationId.id}`, {
         method: "PATCH",
       });
       if (!res.ok) throw new Error("Failed to mark as read");
@@ -56,6 +56,7 @@ const notificationSlice = createSlice({
   initialState: {
     notifications: [],
     loading: false,
+    actionLoading: false, // for mark read actions
     error: null,
   },
   reducers: {},
@@ -74,16 +75,34 @@ const notificationSlice = createSlice({
         state.error = action.payload;
       })
 
-      .addCase(markAsRead.fulfilled, (state, action) => {
-        const id = action.payload;
-        const notif = state.notifications.find((n) => n._id === id);
-        if (notif) notif.read = true;
+      // MARK SINGLE
+      .addCase(markAsRead.pending, (state) => {
+        state.actionLoading = true;
       })
-      .addCase(markAllAsRead.fulfilled, (state, action) => {
+      .addCase(markAsRead.fulfilled, (state, action) => {
+        state.actionLoading = false;
+        const notif = state.notifications.find((n) => n.id === action.payload.id);
+        if (notif) {
+          notif.read = true;
+        }
+      })
+      .addCase(markAsRead.rejected, (state) => {
+        state.actionLoading = false;
+      })
+ 
+      // MARK ALL
+      .addCase(markAllAsRead.pending, (state) => {
+        state.actionLoading = true;
+      })
+      .addCase(markAllAsRead.fulfilled, (state) => {
+        state.actionLoading = false;
         state.notifications = state.notifications.map((notif) => ({
           ...notif,
           read: true,
         }));
+      })
+      .addCase(markAllAsRead.rejected, (state) => {
+        state.actionLoading = false;
       });
   },
 });

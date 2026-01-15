@@ -1,24 +1,19 @@
 import React from "react";
 import moment from "moment";
 
-const NotificationItem = ({ notification }) => {
-  const {
-    senderName,
-    message,
-    timestamp,
-    read,
-    senderProfilePic,
-  } = notification;
+const NotificationItem = ({ notification, onClick }) => {
+  const { senderName, message, timestamp, read, senderProfilePic } =
+    notification;
 
   return (
     <div
-      className={`flex items-center justify-between px-4 py-3 border-b hover:bg-gray-50 ${
-        !read ? "bg-blue-50" : ""
-      }`}
+      onClick={onClick}
+      className={`flex items-center justify-between px-4 py-3
+    ${read ? "bg-white" : "bg-[#DFF5E1]"} hover:bg-gray-50`}
     >
       <div className="flex items-start gap-3">
         <img
-          src={senderProfilePic}
+          src={senderProfilePic || "/profile.png"}
           alt={senderName}
           className="w-10 h-10 rounded-full object-cover"
         />
@@ -33,9 +28,7 @@ const NotificationItem = ({ notification }) => {
         </div>
       </div>
 
-      {!read && (
-        <span className="w-2 h-2 bg-blue-500 rounded-full mt-1" />
-      )}
+      {!read && <span className="w-2 h-2 bg-[#689F38] rounded-full mt-1" />}
     </div>
   );
 };
