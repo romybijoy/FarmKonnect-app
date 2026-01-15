@@ -32,14 +32,6 @@ const LoginScreen = () => {
 
   const { googleSignIn, dbUserSignIn, user, facebookSignIn } = UserAuth();
 
-  useEffect(() => {
-    console.log(user);
-    // if (user) {
-    //   console.log(user);
-    //   navigate("/home");
-    // }
-  }, [navigate, user]);
-
   const iconStyle = {
     fontSize: "16px",
     color: "white",
@@ -88,35 +80,37 @@ const LoginScreen = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    try {
-      await googleSignIn();
-      navigate("/home");
-    } catch (error) {
-      console.log(error);
+    const { success, error } = await googleSignIn();
+
+    if (!success) {
+      setError(error); // show on screen
+      return;
     }
+
+    navigate("/home");
   };
 
   const handleFacebookSignIn = async () => {
-    try {
-      await facebookSignIn();
-      navigate("/home");
-    } catch (error) {
-      console.log(error);
+    const { success, error } = await facebookSignIn();
+
+    if (!success) {
+      setError(error);
+      return;
     }
+
+    navigate("/home");
   };
 
+  {
+    error && <Alert variant="danger">{error}</Alert>;
+  }
   return (
     <section style={{ height: "100vh" }}>
       <Container fluid className="h-100">
         <Row className="align-items-center h-100">
           {/* Left Image */}
           <Col md={6} className="d-none d-md-block">
-            <img
-              // src="https://tecdn.b-cdn.net/img/Photos/new-templates/bootstrap-login-form/draw2.webp"
-              src={img}
-              alt="Sample"
-              className="img-fluid w-100"
-            />
+            <img src={img} alt="Sample" className="img-fluid w-100" />
           </Col>
 
           {/* Login Form */}
@@ -124,7 +118,11 @@ const LoginScreen = () => {
             <div style={{ maxWidth: "400px", margin: "0 auto" }}>
               {/* Sign in with social media */}
               <div>
-                <img className="h-50 w-50 mx-auto" src="logoo.png" alt="logo" />
+                <img
+                  className="h-50 w-50 mx-auto"
+                  src="/logoo.png"
+                  alt="logo"
+                />
               </div>
               <div className="text-center mb-3">
                 <p className="mb-2">Sign in with</p>
@@ -187,7 +185,7 @@ const LoginScreen = () => {
                 <div className="flex justify-end mb-3">
                   <Link
                     to="/forgotPassword"
-                    className="text-blue-500 hover:underline"
+                    className="text-[#689F38] hover:underline"
                   >
                     Forgot password?
                   </Link>
@@ -197,11 +195,10 @@ const LoginScreen = () => {
                 {/* Submit Button */}
                 <div className="d-grid">
                   <Button
-                    className="bg-[#9AB106] text-white font-bold py-2 px-4 rounded"
+                    className="text-white bg-[#689F38] hover:bg-[#5a8c30] font-bold py-2 px-4 rounded"
                     size="lg"
                     disabled={isLoading}
                     type="submit"
-                    variant="primary"
                   >
                     Login
                   </Button>

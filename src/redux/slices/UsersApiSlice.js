@@ -16,27 +16,20 @@ export const UsersApiSlice = ApiSlice.injectEndpoints({
         headers: { Authorization: `Bearer ${token}` },
       }),
     }),
-    // register: builder.mutation({
-    //   query: (data) => ({
-    //     url: `${USERS_URL}`,
-    //     method: 'POST',
-    //     body: data,
-    //   }),
-    // }),
-    // updateUser: builder.mutation({
-    //   query: (data) => ({
-    //     url: `${USERS_URL}/profile`,
-    //     method: 'PUT',
-    //     body: data,
-    //   }),
-    // }),
+
+      socialLogin: builder.mutation({
+      query: (data) => ({
+        url: "/user/auth/social-login",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    
   }),
 });
 
 export const {
   useLoginMutation,
   useGetprofMutation,
-  // useLogoutMutation,
-  // useRegisterMutation,
-  // useUpdateUserMutation,
+   useSocialLoginMutation,
 } = UsersApiSlice;
