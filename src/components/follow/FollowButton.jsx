@@ -13,9 +13,13 @@ export default function FollowButton({ viewerId, targetUserId }) {
   const isFollowing = useSelector(
     (state) => state.follow.followStatus?.[targetUserId] ?? false
   );
- 
-const loading = useSelector((state) => state.follow.loading?.[targetUserId] ?? false);
-const error = useSelector((state) => state.follow.error?.[targetUserId] ?? null);
+
+  const loading = useSelector(
+    (state) => state.follow.loading?.[targetUserId] ?? false
+  );
+  const error = useSelector(
+    (state) => state.follow.error?.[targetUserId] ?? null
+  );
 
   useEffect(() => {
     if (viewerId && targetUserId) {
@@ -50,10 +54,14 @@ const error = useSelector((state) => state.follow.error?.[targetUserId] ?? null)
   return (
     <div>
       <Button
-        variant={isFollowing ? "outline-danger" : "primary"}
         onClick={isFollowing ? handleUnfollow : handleFollow}
         disabled={loading}
-        style={{ width: "100px" }} // 👈 Fixed width
+        style={{ width: "100px" }}
+        className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
+          isFollowing
+            ? "bg-red-500 hover:bg-red-600"
+            : "bg-[#689F38] hover:bg-[#5a8c30]"
+        }`}
       >
         {loading ? (
           <Spinner size="sm" animation="border" />
