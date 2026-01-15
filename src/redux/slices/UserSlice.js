@@ -4,6 +4,10 @@ import { appConfig } from "../../config";
 const token = localStorage.getItem("token");
 
 const ip = `${appConfig.ip}/user`;
+
+const storedUserInfo = localStorage.getItem("userInfo");
+const initialUserInfo = storedUserInfo ? JSON.parse(storedUserInfo) : null;
+
 //create action
 export const createUser = createAsyncThunk(
   "createUser",
@@ -85,29 +89,6 @@ export const deleteUser = createAsyncThunk(
     }
   }
 );
-
-//update action
-// export const updateUser = createAsyncThunk(
-//   "updateUser",
-//   async (data, { rejectWithValue }) => {
-//     console.log("updated data", data);
-//     const response = await fetch(`${ip}/update/${data.id}`, {
-//       method: "PUT",
-//       headers: {
-//         "Content-Type": "application/json",
-//         Authorization: `Bearer ${token}`,
-//       },
-//       body: JSON.stringify(data),
-//     });
-
-//     try {
-//       const result = await response.json();
-//       return result;
-//     } catch (error) {
-//       return rejectWithValue(error);
-//     }
-//   }
-// );
 
 export const updateUser = createAsyncThunk(
   "updateUser",
@@ -308,7 +289,9 @@ export const checkEmailAvailability = createAsyncThunk(
   "user/checkEmailAvailability",
   async (email, { rejectWithValue }) => {
     try {
-      const res = await fetch(`${ip}/validate-email?email=${encodeURIComponent(email)}`);
+      const res = await fetch(
+        `${ip}/validate-email?email=${encodeURIComponent(email)}`
+      );
       if (!res.ok) return rejectWithValue("Unable to check email");
       return await res.json(); // { valid: boolean, message: string }
     } catch (e) {
@@ -317,10 +300,37 @@ export const checkEmailAvailability = createAsyncThunk(
   }
 );
 
+export const getUserByUsername = createAsyncThunk(
+  "user/getUserByUsername",
+  async (username, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`${ip}/username/${username}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return rejectWithValue(error.message || "User not found");
+      }
+
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(error.message || "Something went wrong");
+    }
+  }
+);
+
 export const userDetail = createSlice({
   name: "app",
   initialState: {
     users: [],
+    userInfo: initialUserInfo,
     loading: false,
     error: null,
     user: null,
@@ -330,11 +340,15 @@ export const userDetail = createSlice({
     currentUser: null,
     profiles: {},
     emailCheck: { loading: false, valid: null, message: "" },
+    profileUser: null,
   },
 
   reducers: {
     setUsers: (state, action) => {
       state.users = action.payload.content;
+    },
+    clearProfileUser: (state) => {
+      state.profileUser = null;
     },
   },
 
@@ -494,10 +508,22 @@ export const userDetail = createSlice({
           valid: null,
           message: action.payload || "Unable to check email",
         };
-        });
+      })
+      .addCase(getUserByUsername.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUserByUsername.fulfilled, (state, action) => {
+        state.loading = false;
+        state.profileUser = action.payload;
+      })
+      .addCase(getUserByUsername.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   },
 });
 
 export default userDetail.reducer;
 
-export const { setUsers } = userDetail.actions;
+export const { setUsers, clearProfileUser } = userDetail.actions;

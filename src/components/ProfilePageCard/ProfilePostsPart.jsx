@@ -1,81 +1,63 @@
-import React, { useEffect, useState } from "react";
-import { AiOutlineTable, AiOutlineUser } from "react-icons/ai";
-import { RiVideoLine } from "react-icons/ri";
+import React, { useState } from "react";
+import { AiOutlineTable } from "react-icons/ai";
 import { BiBookmark } from "react-icons/bi";
+import { RiUserFollowLine, RiUserAddLine } from "react-icons/ri";
+import { useSelector } from "react-redux";
 
-import Post from "../posts/Post";
 import Followers from "../profileTabs/followers/Followers";
 import Following from "../profileTabs/following/Following";
-import Groups from "../profileTabs/groups/Groups";
 import SavedPosts from "../posts/SavedPosts";
 import PostsList from "../posts/PostsList";
 
 const ProfilePostsPart = ({ user, post }) => {
   const [activeTab, setActiveTab] = useState("Post");
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    setLoading(true);
+  const loggedInUserId = useSelector(
+    (state) => state.auth?.userInfo?.userId
+  );
 
-    setTimeout(() => {
-      switch (activeTab) {
-        case "Post":
-          setData([
-            { id: 1, content: "Post 1" },
-            { id: 2, content: "Post 2" },
-          ]);
-          break;
-        case "Followers":
-          setData([]); // simulate no followers
-          break;
-        case "Following":
-          setData([]);
-          break;
-        case "Saved Post":
-          setData([]);
-          break;
-        // case "Groups":
-        //   setData([]); // simulate no groups
-        //   break;
-        default:
-          setData([]);
-      }
-      setLoading(false);
-    }, 500);
-  }, [activeTab, user?.id]);
+  const isOwnProfile = loggedInUserId === user?.userId;
 
   const renderComponent = () => {
     switch (activeTab) {
       case "Post":
-        return <PostsList posts={post} />;
+        return <PostsList posts={post} isFeed={false} />;
+
       case "Followers":
-        return <Followers profileUserId={user.id} viewerId={user.id} />;
+        return (
+          <Followers
+            profileUserId={user.userId}
+            viewerId={loggedInUserId}
+          />
+        );
+
       case "Following":
-        return <Following profileUserId={user.id} viewerId={user.id} />;
-        case "Saved Posts":
-        return <SavedPosts userId={user.id} />;
-      // case "Groups":
-      //   return <Groups data={data} />;
+        return (
+          <Following
+            profileUserId={user.userId}
+            viewerId={loggedInUserId}
+          />
+        );
+
+      case "Saved Posts":
+        return isOwnProfile ? (
+          <SavedPosts userId={loggedInUserId} />
+        ) : (
+          <NoAccess />
+        );
+
       default:
         return null;
     }
   };
 
-  const renderNoData = (label) => (
-    <div className="flex flex-col items-center justify-center text-center py-10 text-gray-500">
-      <span className="text-4xl mb-2">📭</span>
-      <p className="text-sm font-medium">No {label} found</p>
-    </div>
-  );
-
   const tabs = [
     { tab: "Post", icon: <AiOutlineTable /> },
-    { tab: "Followers", icon: <RiVideoLine /> },
-    { tab: "Following", icon: <BiBookmark /> },
-    { tab: "Saved Posts", icon: <BiBookmark /> },
-    // { tab: "Groups", icon: <AiOutlineUser /> },
+    { tab: "Followers", icon: <RiUserFollowLine /> },
+    { tab: "Following", icon: <RiUserAddLine /> },
+    ...(isOwnProfile
+      ? [{ tab: "Saved Posts", icon: <BiBookmark /> }]
+      : []),
   ];
 
   return (
@@ -88,8 +70,8 @@ const ProfilePostsPart = ({ user, post }) => {
             onClick={() => setActiveTab(item.tab)}
             className={`flex items-center gap-2 text-sm md:text-base px-3 py-1 border-b-2 transition-all duration-300 ${
               activeTab === item.tab
-                ? "border-blue-500 text-blue-600 font-semibold"
-                : "border-transparent text-gray-500 hover:text-blue-500"
+                ? "border-[#689F38] text-[#689F38] font-semibold"
+                : "border-transparent text-gray-500 hover:text-[#689F38]"
             }`}
           >
             {item.icon}
@@ -99,15 +81,16 @@ const ProfilePostsPart = ({ user, post }) => {
       </div>
 
       {/* Content */}
-      <div className="mt-4 min-h-[200px]">
-        {loading ? (
-          <p className="text-center text-gray-500 py-6">Loading...</p>
-        ) : (
-          renderComponent()
-        )}
-      </div>
+      <div className="mt-4 min-h-[200px]">{renderComponent()}</div>
     </div>
   );
 };
+
+const NoAccess = () => (
+  <div className="flex flex-col items-center justify-center text-center py-10 text-gray-500">
+    <span className="text-4xl mb-2">🔒</span>
+    <p className="text-sm font-medium">Private content</p>
+  </div>
+);
 
 export default ProfilePostsPart;

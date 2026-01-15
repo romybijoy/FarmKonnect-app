@@ -1,17 +1,23 @@
 import React, { useEffect, useRef, useState } from "react";
 import { CheckCircle, Pencil, Camera } from "lucide-react";
 import EditProfileModal from "./EditProfileModal";
+import { fetchFollowCounts } from "../../redux/slices/FollowSlice";
+import { useDispatch, useSelector } from "react-redux";
+import FollowButton from "../follow/FollowButton";
 
 const UserDetailCard = ({
   user,
   isCurrentUser,
   verifiedEmail,
-  openEditModal
+  openEditModal,
+  postsCount,
 }) => {
-  
   const fileInputRef = useRef(null);
   const [previewImage, setPreviewImage] = useState(user.image);
   const [modalOpen, setModalOpen] = useState(false);
+  const dispatch = useDispatch();
+  const loggedInUserId = useSelector((state) => state.auth?.userInfo?.userId);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -23,12 +29,26 @@ const UserDetailCard = ({
     onImageChange && onImageChange(file);
   };
 
-   useEffect(() => {
+  const { followersCount, followingCount } = useSelector(
+    (state) => state.follow
+  );
+
+  useEffect(() => {
     if (openEditModal) {
       // Call your function or set state to open modal
       setModalOpen(openEditModal);
     }
   }, [openEditModal]);
+
+  useEffect(() => {
+    if (user?.userId) {
+      dispatch(fetchFollowCounts(user.userId));
+    }
+  }, [user?.userId, dispatch]);
+
+  useEffect(() => {
+    setPreviewImage(user.imageUrl || user.image || null);
+  }, [user]);
 
   return (
     <div className="bg-white rounded-2xl shadow p-6">
@@ -38,20 +58,19 @@ const UserDetailCard = ({
           {/* Profile Image */}
           <div className="relative mx-auto w-28 h-28">
             <img
-              src={user.image || "profile.png"}
+              src={previewImage || "/profile.png"}
               className="w-28 h-28 rounded-full border-4 border-white shadow-md object-cover"
-              alt="Profile"
+              about="profile"
             />
           </div>
 
           {/* Name & Verified */}
           <div className="flex justify-center items-center gap-2 mt-4">
             <h2 className="text-xl font-semibold text-gray-800">{user.name}</h2>
-            <CheckCircle className="text-blue-500 w-5 h-5" />
+            <CheckCircle className="text-[#689F38] w-5 h-5" />
           </div>
-
-          {/* Edit Button */}
-          {isCurrentUser && (
+          {/* Edit / Follow Button */}
+          {isCurrentUser ? (
             <button
               onClick={() => setModalOpen(true)}
               className="mt-2 inline-flex items-center gap-1 border border-gray-300 px-4 py-1.5 text-sm rounded-lg hover:bg-gray-100 transition"
@@ -59,25 +78,32 @@ const UserDetailCard = ({
               <Pencil className="w-4 h-4" />
               Edit Profile
             </button>
+          ) : (
+            <FollowButton
+              viewerId={loggedInUserId}
+              targetUserId={user.userId}
+            />
           )}
 
           {/* Stats */}
           <div className="flex justify-center gap-6 mt-4 text-sm text-gray-600">
             <div>
-              <span className="font-bold text-gray-800">
-                {user.postsCount || 0}
-              </span>{" "}
+              <span className="font-bold text-gray-800">{postsCount || 0}</span>{" "}
               posts
             </div>
             <div>
               <span className="font-bold text-gray-800">
-                {user.followers || 0}
+                {followersCount
+                  ? followersCount || 0
+                  : user.followersCount || 0}
               </span>{" "}
               followers
             </div>
             <div>
               <span className="font-bold text-gray-800">
-                {user.following || 0}
+                {followingCount
+                  ? followingCount || 0
+                  : user.followingCount || 0}
               </span>{" "}
               following
             </div>
@@ -92,8 +118,12 @@ const UserDetailCard = ({
 
           {/* Bio */}
           <div className="mt-2 text-sm text-gray-600">
-            {user.description ? (
-              user.description
+            {user.description || user.bio ? (
+              user.description ? (
+                user.description
+              ) : (
+                user.bio
+              )
             ) : (
               <span className="italic text-gray-400">
                 Your bio goes here...
@@ -107,7 +137,7 @@ const UserDetailCard = ({
         show={modalOpen}
         handleClose={() => setModalOpen(false)}
         user={user}
-         verifiedEmail={verifiedEmail} 
+        verifiedEmail={verifiedEmail}
       />
     </div>
   );

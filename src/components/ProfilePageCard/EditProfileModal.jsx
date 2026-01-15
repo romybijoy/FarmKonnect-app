@@ -19,7 +19,7 @@ const EditProfileModal = ({ show, handleClose, user }) => {
   const [formData, setFormData] = useState({
     userName: "",
     email: "",
-    mobile_number: "",
+    mobileNumber: "",
     description: "",
     district: "",
     image: "",
@@ -36,7 +36,7 @@ const EditProfileModal = ({ show, handleClose, user }) => {
       setFormData({
         userName: user.name || "",
         email: finalEmail,
-        mobile_number: user.mobile_number || "",
+        mobileNumber: user.mobileNumber || "",
         description: user.description || "",
         district: user.district || "",
         image: user.image || "",
@@ -88,7 +88,9 @@ const EditProfileModal = ({ show, handleClose, user }) => {
         return;
       }
 
-      await dispatch(updateUser({ data: formData, userId: user.id })).unwrap();
+      await dispatch(
+        updateUser({ data: formData, userId: user.userId })
+      ).unwrap();
       toast.success("Profile updated!");
       localStorage.removeItem("verifiedEmail");
       setIsEmailEditable(false);
@@ -121,7 +123,7 @@ const EditProfileModal = ({ show, handleClose, user }) => {
         <div className="text-center mb-3">
           <div className="position-relative d-inline-block">
             <Image
-              src={previewImage || "profile.png"}
+              src={previewImage || "/profile.png"}
               roundedCircle
               width={100}
               height={100}
@@ -188,8 +190,8 @@ const EditProfileModal = ({ show, handleClose, user }) => {
             <Form.Label>Mobile Number</Form.Label>
             <Form.Control
               type="text"
-              name="mobile_number"
-              value={formData.mobile_number}
+              name="mobileNumber"
+              value={formData.mobileNumber}
               onChange={handleChange}
               placeholder="Your Mobile Number"
             />
