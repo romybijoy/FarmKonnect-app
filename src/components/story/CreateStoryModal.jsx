@@ -115,7 +115,7 @@ function AddStory({ onClose }) {
         <button
           onClick={handleUpload}
           disabled={uploading}
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="w-full bg-[#689F38] text-white px-4 py-2 rounded hover:opacity-90"
         >
           {uploading ? "Uploading..." : "Upload"}
         </button>
