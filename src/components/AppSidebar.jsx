@@ -72,8 +72,8 @@ function Sidebar() {
   const navItemClasses = ({ isActive }) =>
     `flex items-center gap-4 px-4 py-3 rounded-md transition-all duration-150 ${
       isActive
-        ? "bg-green-100 text-green-700 font-medium no-underline"
-        : "text-gray-700 hover:bg-gray-100 no-underline"
+        ? "bg-[#DFF5E1] text-[#4B6F2C] font-medium no-underline"
+        : "text-gray-600 hover:bg-[#EDF7EE] no-underline"
     }`;
 
   return (
@@ -81,7 +81,7 @@ function Sidebar() {
       {/* Mobile Header */}
 
       <div className="md:hidden justify-between items-center px-4 py-3 shadow bg-white sticky top-0 z-20">
-        <img src="logoo.png" alt="logo" className="h-10 w-10" />
+        <img src="/logoo.png" alt="logo" className="h-10 w-10" />
         <button onClick={toggleMobileMenu}>
           <IoReorderThreeOutline size={26} />
         </button>
@@ -117,7 +117,7 @@ function Sidebar() {
           {/* Top Section */}
           <div>
             <div className="flex justify-center mb-6">
-              <img src="logoo.png" alt="logo" className="h-20" />
+              <img src="/logoo.png" alt="logo" className="h-20" />
             </div>
 
             <nav className="space-y-1">
@@ -148,7 +148,7 @@ function Sidebar() {
               >
                 <FaBell className="text-lg" />
                 Notifications
-             </NavLink>
+              </NavLink>
               <NavLink
                 to="/addPost"
                 className={navItemClasses}

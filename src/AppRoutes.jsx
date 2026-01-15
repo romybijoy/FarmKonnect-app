@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  Routes,
-  Route,
-  Navigate,
-  useNavigate,
-} from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 import DefaultLayout from "./layout/DefaultLayout";
 import Protected from "./components/Protected/Protected";
@@ -13,7 +8,17 @@ import Register from "./pages/auth/Register";
 import VerifyOtp from "./pages/auth/VerifyOtp";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
-import CallPage from "./components/call/CallPage";
+
+import {
+  Home,
+  Profile,
+  AddPost,
+  ChatApp,
+  AddStory,
+  CallPage,
+  NotificationPanel,
+  AllSuggestions,
+} from "./routes";
 
 function AppRoutes() {
   return (
@@ -25,18 +30,25 @@ function AppRoutes() {
       <Route path="/forgotPassword" element={<ForgotPassword />} />
       <Route path="/set-Password" element={<ResetPassword />} />
 
-      {/* Call screen route */}
+       {/* CALL PAGE (NO SIDEBAR) */}
+      <Route path="/call/:receiverId" element={<CallPage />} />
       <Route path="/call" element={<CallPage />} />
-
-      {/* Protected area */}
       <Route
-        path="*"
         element={
           <Protected>
             <DefaultLayout />
           </Protected>
         }
-      />
+      >
+       <Route path="/home" element={<Home />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/:username" element={<Profile />} />
+        <Route path="/addPost" element={<AddPost />} />
+        <Route path="/chat" element={<ChatApp />} />
+        <Route path="/addStory" element={<AddStory />} />
+        <Route path="/notifications" element={<NotificationPanel />} />
+        <Route path="/suggestions" element={<AllSuggestions />} />
+      </Route>
     </Routes>
   );
 }

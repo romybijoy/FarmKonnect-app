@@ -1,33 +1,23 @@
 import React from "react";
-import Home from "./components/home";
-import PostUploadModal from "./components/post/PostUploadModal";
 
-const Profile = React.lazy(() => import("./components/Profile/Profile"));
-const Login = React.lazy(() => import("./pages/auth/Login"));
+export const Home = React.lazy(() => import("./components/home"));
+export const Profile = React.lazy(() => import("./components/Profile/Profile"));
+export const Login = React.lazy(() => import("./pages/auth/Login"));
 
-const AddPost = React.lazy(() => import("./components/Post/AddPost"));
+export const AddPost = React.lazy(() => import("./components/Post/AddPost"));
 
-const ChatApp = React.lazy(() => import("./components/chat/ChatApp"));
+export const ChatApp = React.lazy(() => import("./components/chat/ChatApp"));
 
-const AddStory = React.lazy(() => import("./components/story/AddStory"));
+export const AddStory = React.lazy(() => import("./components/story/AddStory"));
 
-const CallPage = React.lazy(() =>
+export const CallPage = React.lazy(() =>
   import("./components/call/CallPage")
 );
 
-const NotificationPanel = React.lazy(() =>
+export const NotificationPanel = React.lazy(() =>
   import("./components/notifications/NotificationPanel")
 );
 
-const routes = [
-  { path: "/", exact: true, element: Login },
-  { path: "/profile", name: "Profile", element: Profile },
-  { path: "/home", name: "Home", element: Home },
-  { path: "/addPost", name: "Home", element: AddPost },
-  { path: "/chat", name: "Users", element: ChatApp },
-  { path: "/addStory", name: "Home", element: AddStory },
-  { path: "/call/:receiverId", element: CallPage },
-  { path: "/notifications", element: NotificationPanel },
-];
-
-export default routes;
+export const AllSuggestions = React.lazy(() =>
+  import("./components/suggestion/AllSuggestions")
+);
