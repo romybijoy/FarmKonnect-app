@@ -155,7 +155,7 @@ function StoryViewer({ user, onClose }) {
               />
             </svg>
             <img
-              src={user.profilePic || "profile.png"}
+              src={user.profilePic || "/profile.png"}
               alt="profile"
               className="rounded-full w-full h-full object-cover border-2 border-white"
             />

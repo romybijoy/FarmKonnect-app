@@ -6,7 +6,6 @@ const token = localStorage.getItem("token");
 
 const ip = `${appConfig.ip}/api/stories`;
 
-const userData = JSON.parse(localStorage.getItem("myInfo"));
 
 export const createStory = createAsyncThunk(
   "createStory",
@@ -40,9 +39,14 @@ export const createStory = createAsyncThunk(
 //read action
 export const showStory = createAsyncThunk(
   "showStory",
-  async (_, { rejectWithValue }) => {
+  async (userId, { rejectWithValue }) => {
     try {
-      const response = await fetchWithAuth(`${ip}/following/${userData?.id}`, {
+console.log(userId)
+
+      if (!userId) {
+        return rejectWithValue("User not loaded yet. Please try again.");
+      }
+      const response = await fetchWithAuth(`${ip}/following/${userId}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
