@@ -48,7 +48,8 @@ export const WebRTCProvider = ({ children }) => {
     if (!pc.current || !pc.current.remoteDescription) return;
     for (const candidate of list) {
       try {
-        await pc.current.addIceCandidate(candidate);
+        -(await pc.current.addIceCandidate(candidate));
+        +(await pc.current.addIceCandidate(new RTCIceCandidate(candidate)));
         console.log("Flushed pending ICE candidate");
       } catch (err) {
         console.error("Failed to flush ICE:", err);
@@ -79,16 +80,44 @@ export const WebRTCProvider = ({ children }) => {
         break;
       }
       case "answer": {
-        if (!pc.current || pc.current.signalingState !== "have-local-offer")
+        if (!pc.current) {
+          console.warn("[WebRTC] Got answer but no pc.current");
           return;
+        }
 
-        await pc.current.setRemoteDescription(
-          new RTCSessionDescription({ type: "answer", sdp: signal.sdp })
+        console.log(
+          "[WebRTC] Answer handler. signalingState:",
+          pc.current.signalingState,
+          "localDescription:",
+          pc.current.localDescription?.type,
+          "remoteDescription:",
+          pc.current.remoteDescription?.type
         );
+
+        if (pc.current.signalingState !== "have-local-offer") {
+          console.warn(
+            "[WebRTC] Ignoring answer because signalingState is",
+            pc.current.signalingState,
+            "expected have-local-offer"
+          );
+          return;
+        }
+
+        try {
+          await pc.current.setRemoteDescription(
+            new RTCSessionDescription({ type: "answer", sdp: signal.sdp })
+          );
+          console.log("[WebRTC] Remote answer applied");
+        } catch (err) {
+          console.error("[WebRTC] Error setting remote answer:", err);
+          return;
+        }
+
         await flushPendingCandidates();
         setCallStatus("connecting");
         break;
       }
+
       case "ice": {
         if (!signal.candidate?.candidate) return;
 
@@ -110,6 +139,12 @@ export const WebRTCProvider = ({ children }) => {
         } catch (e) {
           console.warn("addIceCandidate failed:", e);
         }
+        break;
+      }
+      case "end": {
+        console.log("[WebRTC] Remote peer ended the call");
+        // end locally, but DO NOT notify again (avoid loop)
+        endCall(false);
         break;
       }
       case "reject": {
@@ -139,30 +174,85 @@ export const WebRTCProvider = ({ children }) => {
     setSignalSender(signalSenderFn);
   }, [handleSignal, signalSenderFn, setSignalHandler, setSignalSender]);
 
-  // Attach remote AUDIO if the element appears after ontrack
   useEffect(() => {
-    const stream = remoteStreamRef.current;
-    const audioEl = remoteAudioRef.current;
-    if (!audioEl || !stream) return;
-    if (audioEl.srcObject !== stream) {
-      audioEl.srcObject = stream;
+    if (callStatus === "connected") {
+      console.log("[WebRTC] callStatus=connected, retry attachRemoteMedia");
+      attachRemoteMedia();
     }
-    audioEl.volume = 1.0;
-    audioEl.play?.().catch(() => {});
-  }, [remoteAudioRef]);
+  }, [callStatus]);
 
-  // Attach remote VIDEO if the element appears after ontrack
-  useEffect(() => {
+  // // Attach remote AUDIO if the element appears after ontrack
+  // useEffect(() => {
+  //   const stream = remoteStreamRef.current;
+  //   const audioEl = remoteAudioRef.current;
+  //   if (!audioEl || !stream) return;
+  //   if (audioEl.srcObject !== stream) {
+  //     audioEl.srcObject = stream;
+  //   }
+  //   audioEl.volume = 1.0;
+  //   audioEl.play?.().catch(() => {});
+  // }, [remoteAudioRef]);
+
+  // // Attach remote VIDEO if the element appears after ontrack
+  // useEffect(() => {
+  //   const stream = remoteStreamRef.current;
+  //   const videoEl = remoteVideoRef.current;
+  //   console.log("first", videoEl);
+  //   if (!videoEl || !stream) return;
+  //   if (videoEl.srcObject !== stream) {
+  //     videoEl.srcObject = stream;
+  //   }
+  //   videoEl.play?.().catch(() => {});
+  // }, [remoteVideoRef]);
+
+  const attachRemoteMedia = () => {
     const stream = remoteStreamRef.current;
-    const videoEl = remoteVideoRef.current;
-    console.log("first", videoEl);
-    if (!videoEl || !stream) return;
-    if (videoEl.srcObject !== stream) {
-      videoEl.srcObject = stream;
+    if (!stream) {
+      console.log("[attachRemoteMedia] No remote stream yet");
+      return;
     }
-    videoEl.play?.().catch(() => {});
-  }, [remoteVideoRef]);
-  
+
+    // Attach video
+    if (remoteVideoRef.current) {
+      if (remoteVideoRef.current.srcObject !== stream) {
+        console.log("[attachRemoteMedia] Attaching stream to remoteVideoEl");
+        remoteVideoRef.current.srcObject = stream;
+      }
+      remoteVideoRef.current.muted = false;
+      const p = remoteVideoRef.current.play?.();
+      p &&
+        p.catch((err) => {
+          console.warn(
+            "[attachRemoteMedia] Video play failed:",
+            err?.name,
+            err?.message
+          );
+        });
+    } else {
+      console.log("[attachRemoteMedia] remoteVideoRef NOT ready yet");
+    }
+
+    // Attach audio
+    if (remoteAudioRef.current) {
+      if (remoteAudioRef.current.srcObject !== stream) {
+        console.log("[attachRemoteMedia] Attaching stream to remoteAudioEl");
+        remoteAudioRef.current.srcObject = stream;
+      }
+      remoteAudioRef.current.volume = 1.0;
+      const ap = remoteAudioRef.current.play?.();
+      ap &&
+        ap.catch((err) => {
+          console.warn(
+            "[attachRemoteMedia] Audio play failed:",
+            err?.name,
+            err?.message
+          );
+        });
+    } else {
+      console.log("[attachRemoteMedia] remoteAudioRef NOT ready yet");
+    }
+  };
+
   const createPeerConnection = (type) => {
     pc.current = new RTCPeerConnection({
       iceServers: [
@@ -240,18 +330,19 @@ export const WebRTCProvider = ({ children }) => {
         remoteStream.getTracks().map((t) => t.kind)
       );
 
+      remoteStreamRef.current = remoteStream;
+      attachRemoteMedia();
+
       // Attach AUDIO if element exists; otherwise fallback
-      if (track.kind === "audio") {
-        if (remoteAudioRef.current) {
-          if (remoteAudioRef.current.srcObject !== remoteStream) {
-            remoteAudioRef.current.srcObject = remoteStream;
-          }
-          remoteAudioRef.current.volume = 1.0;
-          remoteAudioRef.current.play?.().catch(() => {});
-        } else {
-          // Buffer: let CallPage attach when the <audio> mounts
-          remoteStreamRef.current = remoteStream;
+      if (track.kind === "audio" && remoteAudioRef.current) {
+        if (remoteAudioRef.current.srcObject !== remoteStream) {
+          remoteAudioRef.current.srcObject = remoteStream;
         }
+        remoteAudioRef.current.volume = 1.0;
+        remoteAudioRef.current.play?.().catch(() => {});
+      } else {
+        // Buffer: let CallPage attach when the <audio> mounts
+        remoteStreamRef.current = remoteStream;
       }
 
       // Attach VIDEO if element exists (do NOT gate by callType)
@@ -511,9 +602,19 @@ export const WebRTCProvider = ({ children }) => {
     });
   }
 
-  const endCall = () => {
+  const endCall = (notifyRemote = true) => {
+    console.log("[WebRTC] endCall invoked");
     hasStartedRef.current = false;
     activePeerIdRef.current = null;
+
+    // 👉 Tell the other peer that this call is over
+    if (notifyRemote && remoteIdRef.current) {
+      try {
+        sendSignalSender(remoteIdRef.current, { type: "end" });
+      } catch (e) {
+        console.warn("[WebRTC] Failed to send end signal", e);
+      }
+    }
     if (pc.current) {
       pc.current.close();
       pc.current = null;
@@ -572,46 +673,46 @@ export const WebRTCProvider = ({ children }) => {
   };
 
   // Attach any pending remote stream once refs become available
-  useEffect(() => {
-    const attachIfReady = () => {
-      const stream = pendingRemoteStream.current || remoteStreamRef.current;
-      if (!stream) return;
+  // useEffect(() => {
+  //   const attachIfReady = () => {
+  //     const stream = pendingRemoteStream.current || remoteStreamRef.current;
+  //     if (!stream) return;
 
-      if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
-        remoteVideoRef.current.srcObject = stream;
-        remoteVideoRef.current.onloadedmetadata = () => {
-          remoteVideoRef.current
-            .play()
-            .catch((err) =>
-              console.warn("Remote video play failed:", err?.name, err?.message)
-            );
-        };
-        pendingRemoteStream.current = null;
-      }
+  //     if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
+  //       remoteVideoRef.current.srcObject = stream;
+  //       remoteVideoRef.current.onloadedmetadata = () => {
+  //         remoteVideoRef.current
+  //           .play()
+  //           .catch((err) =>
+  //             console.warn("Remote video play failed:", err?.name, err?.message)
+  //           );
+  //       };
+  //       pendingRemoteStream.current = null;
+  //     }
 
-      if (remoteAudioRef.current && !remoteAudioRef.current.srcObject) {
-        const audioEl = remoteAudioRef.current;
-        audioEl.srcObject = stream;
-        audioEl.volume = 1.0;
-        audioEl.onloadedmetadata = () => {
-          audioEl
-            .play()
-            .catch((err) =>
-              console.warn("Remote audio play failed:", err?.name, err?.message)
-            );
-        };
-      }
-    };
+  //     if (remoteAudioRef.current && !remoteAudioRef.current.srcObject) {
+  //       const audioEl = remoteAudioRef.current;
+  //       audioEl.srcObject = stream;
+  //       audioEl.volume = 1.0;
+  //       audioEl.onloadedmetadata = () => {
+  //         audioEl
+  //           .play()
+  //           .catch((err) =>
+  //             console.warn("Remote audio play failed:", err?.name, err?.message)
+  //           );
+  //       };
+  //     }
+  //   };
 
-    attachIfReady();
-    const t1 = setTimeout(attachIfReady, 100);
-    const t2 = setTimeout(attachIfReady, 500);
+  //   attachIfReady();
+  //   const t1 = setTimeout(attachIfReady, 100);
+  //   const t2 = setTimeout(attachIfReady, 500);
 
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [remoteVideoRef, remoteAudioRef]);
+  //   return () => {
+  //     clearTimeout(t1);
+  //     clearTimeout(t2);
+  //   };
+  // }, [remoteVideoRef, remoteAudioRef]);
 
   return (
     <WebRTCContext.Provider

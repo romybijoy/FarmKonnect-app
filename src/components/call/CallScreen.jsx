@@ -34,11 +34,11 @@ export default function CallScreen({
       remoteVideoRef.current
         .play()
         .then(() => {
-          console.log("✅ Remote video playing");
+          console.log("Remote video playing");
           hasPlayedRemoteRef.current = true;
         })
         .catch((err) => {
-          console.error("❌ play() failed:", err.name, err.message);
+          console.error("play() failed:", err.name, err.message);
         });
     };
 
@@ -55,7 +55,7 @@ export default function CallScreen({
       pendingRemoteStream.current &&
       !hasPlayedRemoteRef.current
     ) {
-      console.log("🎯 Attaching pending remote stream");
+      console.log("Attaching pending remote stream");
       attachRemoteStream(pendingRemoteStream.current);
       pendingRemoteStream.current = null;
     }
@@ -66,7 +66,7 @@ export default function CallScreen({
       {/* Top info */}
       <div className="absolute top-10 w-full flex justify-center items-center flex-col z-10">
         <img
-          src={callerProfile || "profile.png"}
+          src={callerProfile || "/profile.png"}
           alt="Profile"
           className="w-24 h-24 rounded-full border-4 border-green-500 shadow-lg"
         />
@@ -78,7 +78,7 @@ export default function CallScreen({
       <video
         ref={remoteVideoRef}
         autoPlay
-        muted
+        // muted
         playsInline
         className="w-full h-full object-cover"
       />
