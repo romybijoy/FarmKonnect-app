@@ -1,6 +1,14 @@
 // PostUploadModal.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, Form, Button, Row, Col, Image as RBImage, Spinner } from "react-bootstrap";
+import {
+  Modal,
+  Form,
+  Button,
+  Row,
+  Col,
+  Image as RBImage,
+  Spinner,
+} from "react-bootstrap";
 import { FiSend } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { Firebase } from "../../firebase/config";
@@ -69,7 +77,10 @@ export default function PostUploadModal({ isOpen = false, onClose }) {
     if (!files.length) return;
 
     // limit to maximum 3 total images (already uploaded + new ones)
-    const available = Math.max(0, 3 - imgUrls.length - selectedFiles.length - imgAfterCrop.length);
+    const available = Math.max(
+      0,
+      3 - imgUrls.length - selectedFiles.length - imgAfterCrop.length
+    );
     if (available <= 0) {
       toast.warn("You can only upload up to 3 images");
       if (inputRef.current) inputRef.current.value = "";
@@ -143,7 +154,17 @@ export default function PostUploadModal({ isOpen = false, onClose }) {
       canvas.width = px.width;
       canvas.height = px.height;
       const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, px.x, px.y, px.width, px.height, 0, 0, px.width, px.height);
+      ctx.drawImage(
+        img,
+        px.x,
+        px.y,
+        px.width,
+        px.height,
+        0,
+        0,
+        px.width,
+        px.height
+      );
       const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
 
       // add preview
@@ -157,7 +178,9 @@ export default function PostUploadModal({ isOpen = false, onClose }) {
       const base64 = dataUrl.split(",")[1];
       const path = `/product/${Date.now()}_${fileObj.name}`;
       const storageRef = Firebase.storage().ref(path);
-      const snap = await storageRef.putString(base64, "base64", { contentType: "image/jpeg" });
+      const snap = await storageRef.putString(base64, "base64", {
+        contentType: "image/jpeg",
+      });
       const url = await snap.ref.getDownloadURL();
 
       setImgUrls((prev) => {
@@ -227,7 +250,15 @@ export default function PostUploadModal({ isOpen = false, onClose }) {
   const currentCropImage = selectedFiles[currentIndex]?.dataUrl ?? null;
 
   return (
-    <Modal show={isOpen} onHide={closeModal} centered size="xl" dialogClassName="rounded-3" backdrop="static" keyboard>
+    <Modal
+      show={isOpen}
+      onHide={closeModal}
+      centered
+      size="xl"
+      dialogClassName="rounded-3"
+      backdrop="static"
+      keyboard
+    >
       <Modal.Header closeButton>
         <Modal.Title>Create a Post</Modal.Title>
       </Modal.Header>
@@ -238,39 +269,99 @@ export default function PostUploadModal({ isOpen = false, onClose }) {
             <Row className="g-2 align-items-start">
               <Col xs="auto" className="pe-0">
                 {/* using native img for avatar */}
-                <img src={userData.image || "/profile.png"} alt="Avatar" width={56} height={56} style={{ objectFit: "cover", borderRadius: "50%" }} />
+                <img
+                  src={userData.image || "/profile.png"}
+                  alt="Avatar"
+                  width={56}
+                  height={56}
+                  style={{ objectFit: "cover", borderRadius: "50%" }}
+                />
               </Col>
               <Col>
-                <Form.Control as="textarea" placeholder="What's on your mind?" value={text} onChange={(e) => setText(e.target.value)} rows={4} className="resize-none" />
-                <Form.Control.Feedback type="invalid">Please write something or attach an image.</Form.Control.Feedback>
+                <Form.Control
+                  as="textarea"
+                  placeholder="What's on your mind?"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+                <Form.Control.Feedback type="invalid">
+                  Please write something or attach an image.
+                </Form.Control.Feedback>
               </Col>
             </Row>
           </Form.Group>
 
           {/* previews */}
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              marginBottom: 8,
+            }}
+          >
             {imgUrls.map((u, i) => (
-              <img key={i} src={u} alt={`uploaded-${i}`} style={{ width: 100, height: 100, objectFit: "cover", border: "1px solid #ddd", borderRadius: 4 }} />
+              <img
+                key={i}
+                src={u}
+                alt={`uploaded-${i}`}
+                style={{
+                  width: 100,
+                  height: 100,
+                  objectFit: "cover",
+                  border: "1px solid #ddd",
+                  borderRadius: 4,
+                }}
+              />
             ))}
             {/* {imgAfterCrop.map((d, i) => d && <img key={"crop-" + i} src={d} alt={`cropped-${i}`} style={{ width: 100, height: 100, objectFit: "cover", border: "1px dashed #bbb", borderRadius: 4 }} />)} */}
           </div>
 
           <div className="d-flex justify-content-between align-items-center mt-2">
             <Form.Group className="my-2 mb-0" controlId="image">
-              <Form.Label style={{ display: "block" }}>Images (max 3)</Form.Label>
-              <Form.Control type="file" accept="image/*" multiple ref={inputRef} onChange={handleOnChange} disabled={uploading || imgUrls.length >= 3} />
+              <Form.Label style={{ display: "block" }}>
+                Images (max 3)
+              </Form.Label>
+              <Form.Control
+                type="file"
+                accept="image/*"
+                multiple
+                ref={inputRef}
+                onChange={handleOnChange}
+                disabled={uploading || imgUrls.length >= 3}
+              />
               {currentCropImage && (
                 <div className="mt-3">
-                  <ImageCropper image={currentCropImage} visible={true} onCropDone={onCropDone} onCropCancel={onCropCancel} />
-                  <div className="mt-2">Cropping {currentIndex + 1} of {selectedFiles.length}</div>
+                  <ImageCropper
+                    image={currentCropImage}
+                    visible={true}
+                    onCropDone={onCropDone}
+                    onCropCancel={onCropCancel}
+                  />
+                  <div className="mt-2">
+                    Cropping {currentIndex + 1} of {selectedFiles.length}
+                  </div>
                 </div>
               )}
-              <Form.Control.Feedback type="invalid">Please choose an image</Form.Control.Feedback>
+              <Form.Control.Feedback type="invalid">
+                Please choose an image
+              </Form.Control.Feedback>
             </Form.Group>
 
             <div>
-              <Button type="submit" variant="primary" disabled={uploading || (!text.trim() && imgUrls.length === 0)} className="d-inline-flex align-items-center">
-                {uploading ? <Spinner animation="border" size="sm" className="me-2" /> : <FiSend className="me-2" />}
+              <Button
+                type="submit"
+                disabled={uploading || (!text.trim() && imgUrls.length === 0)}
+                style={{ backgroundColor: "#689F38", borderColor: "#689F38" }}
+                className="d-inline-flex align-items-center"
+              >
+                {uploading ? (
+                  <Spinner animation="border" size="sm" className="me-2" />
+                ) : (
+                  <FiSend className="me-2" />
+                )}
                 Post
               </Button>
             </div>

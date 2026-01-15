@@ -6,14 +6,18 @@ import StoryViewer from "../components/story/StoryViewer";
 import { showFeed } from "../redux/slices/PostSlice";
 import NoPosts from "./posts/NoPosts";
 import PostsList from "./posts/PostsList";
+import SkeletonFeed from "./Skeleton/SkeletonFeed";
 function Feed() {
   const [activeUser, setActiveUser] = React.useState(null);
   const dispatch = useDispatch();
-  const { posts } = useSelector((state) => state.post);
+  const { posts,loading,error  } = useSelector((state) => state.post);
+ const userId = useSelector(state => state.auth?.userInfo?.userId);
 
-  useEffect(() => {
-    dispatch(showFeed());
-  }, [dispatch]);
+ useEffect(() => {
+  if (userId) {
+    dispatch(showFeed(userId));
+  }
+}, [userId]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 h-screen flex flex-col">
@@ -25,9 +29,16 @@ function Feed() {
         )}
       </div>
 
-      {/* PostsList scrollable only */}
+
+      {/* Posts Section */}
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <PostsList posts={posts} />
+        
+        {loading ? (
+          <SkeletonFeed /> 
+        ) : (
+          <PostsList posts={posts} loading={loading} error={error} isFeed={true} />
+        )}
+
       </div>
     </div>
   );

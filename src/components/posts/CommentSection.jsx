@@ -28,7 +28,7 @@ export default function CommentSection({ postId }) {
       {/* Add Comment Box */}
       <div className="flex items-center gap-2 p-3 border-b">
         <img
-          src={userData?.image || "profile.png"}
+          src={userData?.image || "/profile.png"}
           alt="profile"
           className="w-9 h-9 rounded-full object-cover"
         />
@@ -82,7 +82,7 @@ function Comment({ comment, postId }) {
       {/* Main Comment */}
       <div className="flex items-start gap-3">
         <img
-          src={comment?.profileImage || "profile.png"}
+          src={comment?.profileImage || "/profile.png"}
           alt=""
           className="w-9 h-9 rounded-full object-cover"
         />
@@ -126,7 +126,7 @@ function Comment({ comment, postId }) {
           {comment.replies?.map((r) => (
             <div key={r.id} className="flex items-start gap-2 mt-3 ml-6">
               <img
-                src={r.user?.profileImage || "profile.png"}
+                src={r.user?.profileImage || "/profile.png"}
                 alt=""
                 className="w-7 h-7 rounded-full object-cover"
               />

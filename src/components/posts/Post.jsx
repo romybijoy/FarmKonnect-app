@@ -1,26 +1,47 @@
 // Post.jsx (updated)
 import React, { useEffect, useRef, useState } from "react";
-import "../../index.css";
-import NoPosts from "./NoPosts";
+import { useDispatch, useSelector } from "react-redux";
 import { parseISO, format } from "date-fns";
+import { FaShare } from "react-icons/fa";
+
+import { Firebase } from "../../firebase/config";
 import {
   likePost,
   toggleSavePost,
   repostPost,
   hidePost,
-  reportPost, // <- import the thunk from your slice
+  reportPost,
+  fetchLikeCount,
+  fetchLikeStatus,
+  fetchSaveStatus,
+  fetchSaveCount,
+  updatePost,
+  deletePost,
 } from "../../redux/slices/PostSlice";
-import { useDispatch, useSelector } from "react-redux";
-import { FaShare } from "react-icons/fa";
+import { fetchCommentCount } from "../../redux/slices/CommentSlice";
 import CommentSection from "./CommentSection";
 
 import { toast } from "react-toastify";
+import {
+  Modal,
+  Form,
+  Button,
+  Row,
+  Col,
+  Image as RBImage,
+  Spinner,
+} from "react-bootstrap";
+import ImageCropper from "../ImageUpload/ImageCropper";
+import ExistingImagesGrid from "./ExistingImagesGrid";
+import PostImagesGrid from "./PostImagesGrid";
 
 function Post({ post }) {
-  const [expandedPosts, setExpandedPosts] = useState({});
-  const [dropdownOpen, setDropdownOpen] = useState({});
   const dispatch = useDispatch();
-  const [dropdownPostId, setDropdownPostId] = useState(null);
+  const dropdownRef = useRef(null);
+
+  const userId = useSelector((state) => state.auth?.userInfo?.userId);
+  const isOwner = post.userId === userId;
+  const userData = useSelector((state) => state.auth?.userInfo || {});
   const [showComments, setShowComments] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -33,11 +54,22 @@ function Post({ post }) {
   const [reportError, setReportError] = useState(null);
   const [reportSuccess, setReportSuccess] = useState(false);
 
-  const dropdownRef = useRef(null);
-  const userData = JSON.parse(localStorage.getItem("myInfo"));
-  const { savedByPostId, saveCountsByPostId } = useSelector(
-    (state) => state.post
-  );
+  const [expandedPosts, setExpandedPosts] = useState({});
+  const [dropdownOpen, setDropdownOpen] = useState({});
+  const [dropdownPostId, setDropdownPostId] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editContent, setEditContent] = useState(post.content || "");
+  const [existingImages, setExistingImages] = useState(post.postImages || []);
+  const [newImageUrls, setNewImageUrls] = useState([]); // uploaded URLs
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [editImages, setEditImages] = useState(post.postImages || []);
+  const [editLoading, setEditLoading] = useState(false);
+  const [currentCropImage, setCurrentCropImage] = useState(null); // string (URL)
+  const [selectedFiles, setSelectedFiles] = useState([]); // { name, dataUrl }
+  const [imgAfterCrop, setImgAfterCrop] = useState([]); // previews
   const commentCount = useSelector(
     (state) => state.comments.counts[post.id] || 0
   );
@@ -50,32 +82,37 @@ function Post({ post }) {
   const isSaved = saveData?.saved || false;
   const saveCount = saveData?.count || 0;
 
+  const inputRef = useRef(null);
+
   const handleToggleMore = (postId) => {
     setExpandedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
 
-  const handleSave = (id) => {
-    dispatch(toggleSavePost({ postId: id, userId: userData.id }));
+  const handleSave = () => {
+    console.log("first");
+    dispatch(toggleSavePost({ postId: post.id, userId: userId }));
   };
 
   const handleDropdownToggle = (id) => {
     setDropdownOpen((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Repost
-  const handleRepost = () => {
-    dispatch(
-      repostPost({
-        postId: post.id,
-        userId: userData.id,
-        userDto: {
-          name: userData.name,
-          profileImage: userData.profileImage,
-        },
-      })
-    );
-  };
+  // ---------- Fetch metadata ----------
+  useEffect(() => {
+    if (!post?.id || !userId) return;
 
+    dispatch(fetchLikeCount(post.id));
+    dispatch(fetchLikeStatus({ postId: post.id, userId }));
+    dispatch(fetchSaveStatus({ postId: post.id, userId }));
+    dispatch(fetchSaveCount(post.id));
+    dispatch(fetchCommentCount(post.id));
+  }, [dispatch, post.id, userId]);
+
+  // ---------- Helpers ----------
+  const formatDate = (dateString) => {
+    const parsed = parseISO(dateString.split(".")[0]);
+    return format(parsed, "dd MMM yyyy, hh:mm a");
+  };
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -88,18 +125,26 @@ function Post({ post }) {
     };
   }, []);
 
-  function formatDate(dateString) {
-    const cleanDateString = dateString.split(".")[0];
-    const parsedDate = parseISO(cleanDateString);
-    return format(parsedDate, "dd MMM yyyy, hh:mm a");
-  }
+  useEffect(() => {
+    if (selectedFiles.length > 0 && selectedFiles[currentIndex]) {
+      setCurrentCropImage(selectedFiles[currentIndex].dataUrl);
+    } else {
+      setCurrentCropImage(null);
+    }
+  }, [selectedFiles, currentIndex]);
 
-  const isExpanded = expandedPosts[post.id];
+  useEffect(() => {
+    if (editOpen) {
+      setEditContent(post.content || "");
+      setExistingImages(post.postImages || []);
+      setSelectedFiles([]);
+      setNewImageUrls([]);
+      setCurrentCropImage(null);
+    }
+  }, [editOpen, post]);
 
-  const content = post.repost
-    ? post.originalPost?.content || ""
-    : post.content || "";
-  const previewText = content.slice(0, 70);
+  const content = post.content || "";
+  const previewText = content.slice(0, 100);
 
   const images =
     Array.isArray(post.postImages) && post.postImages.length > 0
@@ -107,6 +152,21 @@ function Post({ post }) {
       : post.postImage
       ? [post.postImage]
       : [];
+
+  // ---------- Actions ----------
+  const handleLike = () => dispatch(likePost({ postId: post.id, userId }));
+
+  const handleRepost = () =>
+    dispatch(
+      repostPost({
+        postId: post.id,
+        userId,
+        userDto: {
+          name: userData.name,
+          profileImage: userData.profileImage || null,
+        },
+      })
+    );
 
   // ---------- Report submission handler ----------
   const openReportModal = () => {
@@ -125,7 +185,7 @@ function Post({ post }) {
       await dispatch(
         reportPost({
           postId: post.id,
-          reporterId: userData.id,
+          reporterId: userId,
           reason: reportReason,
           details: reportDetails || null,
         })
@@ -134,7 +194,7 @@ function Post({ post }) {
       setReportSuccess(true);
       setReportModalOpen(false);
 
-       toast.success("Report Submitted Successfully");
+      toast.success("Report Submitted Successfully");
     } catch (err) {
       // err may be a string or Error
       setReportError(err?.message || "Failed to submit report");
@@ -144,275 +204,396 @@ function Post({ post }) {
     }
   };
 
+  const handleEditSubmit = async () => {
+    try {
+      setEditLoading(true);
+
+      const finalImages = [...existingImages, ...newImageUrls].slice(
+        0,
+        MAX_IMAGES
+      );
+
+      await dispatch(
+        updatePost({
+          postId: post.id,
+          userId,
+          content: editContent,
+          postImages: finalImages,
+        })
+      ).unwrap();
+
+      setEditOpen(false);
+    } catch (err) {
+      console.error("Edit post failed", err);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const MAX_IMAGES = 3;
+
+  const handleNewImages = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const available = Math.max(
+      0,
+      MAX_IMAGES -
+        existingImages.length -
+        newImageUrls.length -
+        selectedFiles.length
+    );
+
+    if (available <= 0) {
+      toast.warn("You can only upload up to 3 images");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+
+    const toTake = files.slice(0, available);
+
+    const readers = toTake.map((file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () =>
+          resolve({
+            name: file.name,
+            dataUrl: reader.result,
+            file,
+          });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers)
+      .then((results) => {
+        setSelectedFiles((prev) => {
+          const next = [...prev, ...results];
+
+          // ✅ start cropping immediately if nothing was queued before
+          if (prev.length === 0 && results.length > 0) {
+            setCurrentIndex(0);
+          }
+
+          return next;
+        });
+      })
+      .catch(() => toast.error("Failed to read selected files"))
+      .finally(() => {
+        if (inputRef.current) inputRef.current.value = "";
+      });
+  };
+
+  const handleRemoveExistingImage = (index) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCropDone = async (imgCroppedArea) => {
+    const fileObj = selectedFiles[currentIndex];
+    if (!fileObj || !imgCroppedArea) return;
+
+    setUploading(true);
+
+    try {
+      const img = await createImage(fileObj.dataUrl);
+
+      const naturalW = img.naturalWidth || img.width;
+      const naturalH = img.naturalHeight || img.height;
+
+      let px;
+      if (imgCroppedArea.width <= 1 && imgCroppedArea.height <= 1) {
+        px = {
+          x: Math.round(imgCroppedArea.x * naturalW),
+          y: Math.round(imgCroppedArea.y * naturalH),
+          width: Math.round(imgCroppedArea.width * naturalW),
+          height: Math.round(imgCroppedArea.height * naturalH),
+        };
+      } else {
+        px = {
+          x: Math.round(imgCroppedArea.x),
+          y: Math.round(imgCroppedArea.y),
+          width: Math.round(imgCroppedArea.width),
+          height: Math.round(imgCroppedArea.height),
+        };
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = px.width;
+      canvas.height = px.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(
+        img,
+        px.x,
+        px.y,
+        px.width,
+        px.height,
+        0,
+        0,
+        px.width,
+        px.height
+      );
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+
+      // preview (optional but good UX)
+      setImgAfterCrop((prev) => [...prev, dataUrl]);
+
+      // upload to Firebase
+      const base64 = dataUrl.split(",")[1];
+      const path = `/post/${Date.now()}_${fileObj.name}`;
+      const storageRef = Firebase.storage().ref(path);
+      const snap = await storageRef.putString(base64, "base64", {
+        contentType: "image/jpeg",
+      });
+      const url = await snap.ref.getDownloadURL();
+
+      // KEY CHANGE FOR EDIT POST
+      setNewImageUrls((prev) => {
+        const next = [...prev, url];
+        return next.slice(0, MAX_IMAGES - existingImages.length);
+      });
+
+      // move queue forward
+      const nextIndex = currentIndex + 1;
+      if (nextIndex < selectedFiles.length) {
+        setCurrentIndex(nextIndex);
+      } else {
+        setSelectedFiles([]);
+        setCurrentIndex(0);
+      }
+    } catch (err) {
+      console.error("crop/upload error", err);
+      toast.error("Failed to crop/upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setSelectedFiles((prev) => prev.slice(1));
+    setCurrentCropImage(null);
+  };
+
+  const createImage = (src) =>
+    new Promise((resolve, reject) => {
+      try {
+        const img = new window.Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(e);
+        img.src = src;
+      } catch (err) {
+        reject(err);
+      }
+    });
+
   return (
-    <div className="p-4 max-w-screen-md mx-auto">
-      <div key={post.id} className="bg-white rounded-xl shadow-md p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <img
-              src={post.image}
-              alt="Profile"
-              className="w-12 h-12 rounded-full object-cover border mr-3"
-            />
-            <div>
-              <h6 className="font-semibold text-sm">{post.userName}</h6>
-              <p className="text-xs text-gray-500">
-                {post.createdAt ? formatDate(post.createdAt) : ""}
-              </p>
-            </div>
-          </div>
+    <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+      {/* ---------- Header ---------- */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <img
+            src={post.image || "/profile.png"}
+            alt="profile"
+            className="w-9 h-9 rounded-full mr-2"
+          />
 
-          <div className="relative" ref={dropdownRef}>
-            <div className="flex space-x-3 text-gray-500">
-              <button
-                onClick={() =>
-                  setDropdownPostId((prev) =>
-                    prev === post.id ? null : post.id
-                  )
-                }
-              >
-                <i className="bi bi-three-dots"></i>
-              </button>
-            </div>
-
-            {dropdownPostId === post.id && (
-              <div className="absolute right-0 mt-2 w-44 bg-white rounded shadow-md z-10 transition-all duration-200 ease-in-out animate-fadeIn">
-                <ul className="text-sm text-gray-700">
-                  <li
-                    onClick={() =>
-                      dispatch(
-                        toggleSavePost({
-                          postId: post.id,
-                          userId: userData.id,
-                        })
-                      )
-                    }
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    {isSaved ? "Unsave Post" : "Save Post"}
-                  </li>
-                  <li
-                    onClick={() =>
-                      dispatch(hidePost({ postId: post.id, userId: userData.id }))
-                    }
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    Remove from Feed
-                  </li>
-
-                  {/* REPORT option */}
-                  <li
-                    onClick={() => {
-                      setDropdownPostId(null);
-                      openReportModal();
-                    }}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
-                  >
-                    Report Post
-                  </li>
-                </ul>
-              </div>
-            )}
+          <div className="pt-2">
+            <p className="font-semibold text-sm text-gray-900 m-0">
+              {post.userName}
+            </p>
+            <p className="text-xs text-gray-500 ml-0 mt-1">
+              {post.createdAt == null
+                ? formatDate(post.repostedAt)
+                : formatDate(post.createdAt)}
+            </p>
           </div>
         </div>
 
-        <div className="mt-4">
-          <div className="text-gray-700 text-sm w-full">
-            {isExpanded ? content : previewText}
-            {content.length > 70 && (
-              <button
-                onClick={() => handleToggleMore(post.id)}
-                className="ml-2 text-blue-500 text-xs"
-              >
-                {isExpanded ? "Less" : "More"}
-              </button>
-            )}
-          </div>
+        {/* ---------- Dropdown ---------- */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() =>
+              setDropdownPostId((prev) => (prev === post.id ? null : post.id))
+            }
+            className="p-2 rounded-full hover:bg-gray-100"
+          >
+            <i className="bi bi-three-dots"></i>
+          </button>
 
-          {/* --- Images grid --- (unchanged) */}
-          {images.length > 0 && (
-            <>
-              <div
-                className="mt-3 grid gap-1"
-                style={{
-                  gridTemplateColumns:
-                    images.length === 1
-                      ? "1fr"
-                      : images.length === 2
-                      ? "1fr 1fr"
-                      : "1fr 1fr",
-                }}
-              >
-                {images.slice(0, 3).map((url, idx) => {
-                  const isThreeAndFirst = images.length === 3 && idx === 0;
-                  return (
-                    <div
-                      key={idx}
-                      className={`relative overflow-hidden rounded-lg bg-gray-100 ${
-                        isThreeAndFirst ? "row-span-2" : ""
-                      }`}
-                      style={{
-                        cursor: "pointer",
-                        minHeight: isThreeAndFirst ? 220 : 120,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                      onClick={() => {
-                        setLightboxIndex(idx);
-                        setLightboxOpen(true);
-                      }}
+          {dropdownPostId === post.id && (
+            <div className="absolute right-0 mt-2 w-40 bg-white border rounded-lg shadow-lg z-20">
+              <ul className="text-sm divide-y">
+                {!isOwner && (
+                  <>
+                    <li
+                      onClick={() =>
+                        dispatch(
+                          toggleSavePost({
+                            postId: post.id,
+                            userId: userData.id,
+                          })
+                        )
+                      }
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                     >
-                      <img
-                        src={url}
-                        alt={`post-${idx}`}
-                        className="w-full h-full object-cover"
-                        style={{ display: "block" }}
-                      />
+                      {isSaved ? "Unsave Post" : "Save Post"}
+                    </li>
+                    <li
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() =>
+                        dispatch(hidePost({ postId: post.id, userId }))
+                      }
+                    >
+                      Remove from Feed
+                    </li>
 
-                      {idx === 2 && images.length > 3 && (
-                        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white text-xl font-semibold">
-                          +{images.length - 3}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    {/* REPORT option */}
+                    <li
+                      onClick={() => {
+                        setDropdownPostId(null);
+                        openReportModal();
+                      }}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
+                    >
+                      Report Post
+                    </li>
+                  </>
+                )}
 
-              {lightboxOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-                  <button
-                    className="absolute top-5 right-5 text-white text-2xl p-2"
-                    onClick={() => setLightboxOpen(false)}
-                    aria-label="Close"
-                  >
-                    &times;
-                  </button>
+                {isOwner && (
+                  <>
+                    <li
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => setEditOpen(true)}
+                    >
+                      Edit Post
+                    </li>
 
-                  <button
-                    className="absolute left-4 text-white text-3xl p-2"
-                    onClick={() =>
-                      setLightboxIndex(
-                        (i) => (i - 1 + images.length) % images.length
-                      )
-                    }
-                    aria-label="Prev"
-                  >
-                    ‹
-                  </button>
-
-                  <div className="max-w-[90vw] max-h-[90vh]">
-                    <img
-                      src={images[lightboxIndex]}
-                      alt={`lightbox-${lightboxIndex}`}
-                      className="max-w-full max-h-[80vh] object-contain rounded"
-                    />
-                    <div className="text-center text-white mt-2">
-                      {lightboxIndex + 1} / {images.length}
-                    </div>
-                  </div>
-
-                  <button
-                    className="absolute right-4 text-white text-3xl p-2"
-                    onClick={() =>
-                      setLightboxIndex((i) => (i + 1) % images.length)
-                    }
-                    aria-label="Next"
-                  >
-                    ›
-                  </button>
-                </div>
-              )}
-            </>
+                    <li
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-red-600"
+                      onClick={() =>
+                        dispatch(deletePost({ postId: post.id, userId }))
+                      }
+                    >
+                      Delete Post
+                    </li>
+                  </>
+                )}
+              </ul>
+            </div>
           )}
         </div>
+      </div>
 
-        <div className="flex justify-between text-sm text-gray-600 mt-4">
-          <div>
-            <div>
-              {likeCount ?? 0} {likeCount === 1 ? "like" : "likes"}
-            </div>
-          </div>
-          <div>{commentCount} comments</div>
-          <div>
-            {" "}
-            {saveCount ?? 0} {saveCount === 1 ? "save" : "saves"}
-          </div>
-        </div>
-
-        <hr className="my-3" />
-
-        <div className="flex justify-between text-sm font-medium text-gray-700">
+      {/* ---------- Content ---------- */}
+      <div className="mt-3 text-sm text-gray-700">
+        {expanded ? content : previewText}
+        {content.length > 100 && (
           <button
-            className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
-            onClick={() =>
-              dispatch(likePost({ postId: post.id, userId: userData.id }))
-            }
+            className="ml-2 text-blue-500 text-xs"
+            onClick={() => setExpanded((p) => !p)}
           >
-            <i
-              className={`bi text-lg transition-colors duration-150 ${
-                isLiked
-                  ? "bi-hand-thumbs-up-fill text-blue-600"
-                  : "bi-hand-thumbs-up text-gray-600"
-              }`}
-            ></i>{" "}
-            Like
+            {expanded ? "Less" : "More"}
           </button>
-          <button
-            className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
-            onClick={() => setShowComments((prev) => !prev)}
-          >
-            <i className="bi bi-chat-left-text"></i> Comment
-          </button>
-          <button
-            className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
-            onClick={handleRepost}
-          >
-            <FaShare className="text-base" /> Share
-          </button>
-        </div>
-
-        <div>{showComments && <CommentSection postId={post.id} />}</div>
-
-        {/* --- Repost View --- (unchanged) */}
-        {post.repost && post.originalPostId && (
-          <div className="border border-gray-200 rounded-lg bg-gray-50 mt-4 p-3">
-            <div className="text-sm text-gray-500 mb-2">
-              <span className="font-semibold">{post.userName}</span> shared this
-              post
-            </div>
-
-            <div className="bg-white border rounded p-3 shadow-sm">
-              <div className="flex items-center mb-2">
-                <img
-                  src={post?.originalPost?.image}
-                  alt="Original Profile"
-                  className="w-8 h-8 rounded-full mr-2"
-                />
-                <div>
-                  <p className="font-bold text-sm">
-                    {post.originalPost.userName}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(post.originalPost.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-              <p className="text-gray-700 text-sm">
-                {post.originalPost.content}
-              </p>
-              {post.originalPost.postImage && (
-                <img
-                  src={post.originalPost.postImage}
-                  alt="Original Post"
-                  className="mt-2 rounded-lg"
-                />
-              )}
-            </div>
-          </div>
         )}
       </div>
+      {/* ---------------- Images ---------------- */}
+      {images.length > 0 && <PostImagesGrid images={images} />}
+
+      {/* ---------- Stats ---------- */}
+      <div className="flex justify-between text-xs text-gray-500 mt-3">
+        <span>{likeCount} likes</span>
+        <span>{commentCount} comments</span>
+        <span>
+          {saveCount ?? 0} {saveCount === 1 ? "save" : "saves"}
+        </span>
+      </div>
+
+      <hr className="my-3" />
+
+      {/* ---------- Actions ---------- */}
+      <div className="flex justify-between text-sm font-medium">
+        <button
+          onClick={() =>
+            dispatch(likePost({ postId: post.id, userId: userId }))
+          }
+          className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
+        >
+          <i
+            className={`bi ${
+              isLiked
+                ? "bi-hand-thumbs-up-fill text-blue-600"
+                : "bi-hand-thumbs-up"
+            }`}
+          />
+          Like
+        </button>
+
+        <button
+          onClick={() => setShowComments((p) => !p)}
+          className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
+        >
+          <i className="bi bi-chat-left-text" />
+          Comment
+        </button>
+
+        <button
+          onClick={handleSave}
+          className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
+        >
+          <i className={`bi ${isSaved ? "bi-bookmark-fill" : "bi-bookmark"}`} />
+          Save
+        </button>
+
+        <button
+          onClick={handleRepost}
+          className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
+        >
+          <FaShare />
+          Share
+        </button>
+      </div>
+
+      {/* ---------- Comments ---------- */}
+      {showComments && <CommentSection postId={post.id} />}
+
+      {/* --- Repost View ---  */}
+      {post.repost && post.originalPostId && (
+        <div className="border border-gray-200 rounded-lg bg-gray-50 mt-4 p-3">
+          <div className="text-sm text-gray-500 mb-2">
+            <span className="font-semibold">{post?.userName}</span> shared this
+            post
+          </div>
+
+          <div className="bg-white border rounded p-3 shadow-sm">
+            <div className="flex items-center">
+              <img
+                src={post?.originalPost?.image}
+                alt="profile"
+                className="w-9 h-9 rounded-full mr-2"
+              />
+
+              <div className="pt-2">
+                <p className="font-semibold text-sm text-gray-900 m-0">
+                  {post.originalPost?.userName}
+                </p>
+                <p className="text-xs text-gray-500 ml-0 mt-1">
+                  {post.originalPost?.createdAt &&
+                    formatDate(post?.originalPost?.createdAt)}
+                </p>
+              </div>
+            </div>
+            <p className="text-gray-700 text-sm">
+              {post.originalPost?.content}
+            </p>
+            {post.originalPost?.postImages?.length > 0 && (
+              <PostImagesGrid images={post.originalPost?.postImages} />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ---------------- REPORT MODAL ---------------- */}
       {reportModalOpen && (
@@ -424,8 +605,8 @@ function Post({ post }) {
             </div>
 
             <p className="text-sm text-gray-600 mb-3">
-              Why are you reporting this post? Select a reason and optionally add
-              details.
+              Why are you reporting this post? Select a reason and optionally
+              add details.
             </p>
 
             <select
@@ -470,8 +651,82 @@ function Post({ post }) {
           </div>
         </div>
       )}
+
+      {/* ---------------- EDIT POST MODAL ---------------- */}
+      <Modal
+        show={editOpen}
+        onHide={() => setEditOpen(false)}
+        centered
+        size="lg"
+        backdrop="static"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Post</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <Form>
+            <Form.Control
+              as="textarea"
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              rows={3}
+            />
+            {/* Existing images */}
+            {existingImages.length > 0 && (
+              <ExistingImagesGrid
+                images={existingImages}
+                onRemove={handleRemoveExistingImage}
+              />
+            )}
+
+            {newImageUrls.length > 0 && (
+              <div className="flex gap-2 flex-wrap mb-3">
+                {newImageUrls.map((img, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={img}
+                      alt="new-upload"
+                      className="w-24 h-24 object-cover rounded"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* New images */}
+            <Form.Control
+              type="file"
+              multiple
+              ref={inputRef}
+              onChange={handleNewImages}
+            />
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setEditOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleEditSubmit}
+            disabled={uploading}
+          >
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      {/* Cropper */}
+      {currentCropImage && (
+        <ImageCropper
+          image={currentCropImage}
+          visible={!!currentCropImage}
+          onCropDone={handleCropDone}
+          onCropCancel={handleCropCancel}
+        />
+      )}
     </div>
   );
 }
 
-export default Post;
+export default React.memo(Post);

@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { appConfig } from "../../config";
 import { fetchWithAuth } from "../../service/FetchService";
 
-const token = localStorage.getItem("token");
+import { toast } from "react-toastify";
 
 const ip = `${appConfig.ip}/api`;
 
@@ -40,11 +40,17 @@ export const createPost = createAsyncThunk(
 //read action
 export const showPost = createAsyncThunk(
   "showPost",
-  async (_, { rejectWithValue }) => {
+  async (userId, { getState, rejectWithValue }) => {
     try {
-      const response = await fetchWithAuth(`${ip}/post/get`, {
-        method: "GET",
-      });
+      const state = getState();
+      const id = userId ? userId :state.auth?.userInfo?.userId;
+
+      const response = await fetchWithAuth(
+        `${ip}/post/user/${id}?page=0&size=10`,
+        {
+          method: "GET",
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -62,32 +68,32 @@ export const showPost = createAsyncThunk(
 
 export const showFeed = createAsyncThunk(
   "showFeed",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      const response = await fetchWithAuth(`${ip}/feed/${userData?.id}`, {
-        method: "GET",
-      });
+      const state = getState();
+      const userId = state.auth?.userInfo?.userId;
 
-      // Handle non-2xx HTTP statuses safely
+      if (!userId) {
+        return rejectWithValue("User not loaded yet. Please try again.");
+      }
+
+      const response = await fetchWithAuth(`${ip}/feed/${userId}`);
+
       if (!response.ok) {
         let errorMessage = "Server unavailable or returned an error";
         try {
           const errorData = await response.json();
           errorMessage = errorData?.message || errorMessage;
-        } catch (_) {
-          // If response is not JSON (like 503 HTML), skip parsing
-        }
+        } catch {}
         return rejectWithValue(errorMessage);
       }
 
-      // Parse result normally
       const result = await response.json();
-      console.log(result);
       return result;
     } catch (error) {
-      // Network error, e.g., backend down or CORS failed
-      console.error("Network or backend failure:", error);
-      return rejectWithValue("Unable to reach the server. Please try again later.");
+      return rejectWithValue(
+        "Unable to reach the server. Please try again later."
+      );
     }
   }
 );
@@ -128,7 +134,7 @@ export const unlikePost = createAsyncThunk(
       const response = await fetchWithAuth(
         `${ip}/${postId}/like?userId=${userData.id}`,
         {
-          method: "DELETE"
+          method: "DELETE",
         }
       );
       if (!response.ok) throw new Error("Failed to unlike post");
@@ -141,7 +147,7 @@ export const unlikePost = createAsyncThunk(
   }
 );
 
-// ✅ Fetch like count for a post
+// Fetch like count for a post
 export const fetchLikeCount = createAsyncThunk(
   "posts/fetchLikeCount",
   async (postId, { rejectWithValue }) => {
@@ -158,7 +164,7 @@ export const fetchLikeCount = createAsyncThunk(
   }
 );
 
-// ✅ Fetch like status for a user + post
+// Fetch like status for a user + post
 export const fetchLikeStatus = createAsyncThunk(
   "posts/fetchLikeStatus",
   async ({ postId, userId }, { rejectWithValue }) => {
@@ -181,8 +187,9 @@ export const toggleSavePost = createAsyncThunk(
   "posts/toggleSavePost",
   async ({ postId, userId }, { getState }) => {
     const state = getState().post;
-    const isSaved = state.savedByPostId[postId].saved || false;
+    const isSaved = state.savedByPostId[postId]?.saved || false;
 
+    // Toggle save status
     if (isSaved) {
       await fetchWithAuth(`${ip}/post/${postId}/save?userId=${userId}`, {
         method: "DELETE",
@@ -193,15 +200,16 @@ export const toggleSavePost = createAsyncThunk(
       });
     }
 
-    const saveCountRes = await fetchWithAuth(`${ip}/post/${postId}/save-count`);
-    const saveCount = await saveCountRes.json();
+    // Get updated save count
+    const countRes = await fetchWithAuth(`${ip}/post/${postId}/save-count`);
+    const count = await countRes.json();
 
-    const statusRes = await fetchWithAuth(
-      `${ip}/post/${postId}/save-status?userId=${userId}`
-    );
-    const saved = await statusRes.json();
-
-    return { postId, saved, count };
+    return {
+      postId,
+      saved: !isSaved,
+      count,
+      message: isSaved ? "Post removed from saved" : "Post saved successfully",
+    };
   }
 );
 
@@ -271,32 +279,7 @@ export const repostPost = createAsyncThunk(
     }
   }
 );
-// export const showPostByKeyword = createAsyncThunk('showPostByKeyword', async (data, { rejectWithValue }) => {
-//   console.log(data.page)
-//   try{
-//   let response
-//  response = await fetch(
-//         `${appConfig.ip}/post/keyword/${data.keyword}?pageNumber=${data.page}&pageSize=5`,
-//         {
-//           method: 'GET',
-//           headers: {
-//             Authorization: `Bearer ${token}`,
-//           },
-//         },
-//       )
 
-//       if ( response.status !== 302) {
-//         return rejectWithValue(response.json());
-//       }
-//     const result = await response.json()
-//     console.log(result)
-//     return result
-//   } catch (error) {
-//     return rejectWithValue(error)
-//   }
-// })
-
-//update action
 export const fetchPostById = createAsyncThunk(
   "fetchPostById",
   async (id, { rejectWithValue }) => {
@@ -320,12 +303,15 @@ export const hidePost = createAsyncThunk(
     await fetchWithAuth(`${ip}/feed/${userId}/hide/${postId}`, {
       method: "POST",
     });
-    return postId; // we only need to remove it locally
+
+    return {
+      postId,
+      message: "Post removed from your feed",
+    };
   }
 );
 
-
-// Example thunk: adjust base URL or fetch wrapper to match your project
+// report post action
 export const reportPost = createAsyncThunk(
   "post/reportPost",
   // payload: { postId, reporterId, reason, details }
@@ -359,56 +345,44 @@ export const reportPost = createAsyncThunk(
   }
 );
 
- 
+//delete action
 
+export const deletePost = createAsyncThunk(
+  "post/deletePost",
+  async ({ postId, userId }, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/post/${postId}?userId=${userId}`, {
+        method: "DELETE",
+      });
 
-// //delete action
-// export const deletePost = createAsyncThunk(
-//   "deletePost",
-//   async (id, { rejectWithValue, dispatch }) => {
-//     const response = await fetch(`${appConfig.ip}/post/${id}`, {
-//       method: "DELETE",
-//       headers: {
-//         "Content-Type": "application/json",
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
+      if (!res.ok) throw new Error("Failed to delete post");
 
-//     try {
-//       const result = await response.json();
-//       console.log(result);
-//       dispatch(showPost({ page: 0, pageSize: 5 }));
-//       dispatch(showPostByKeyword());
-//       return result;
-//     } catch (error) {
-//       return rejectWithValue(error);
-//     }
-//   }
-// );
+      return postId;
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
 
 // //update action
-// export const updatePost = createAsyncThunk(
-//   "updatePost",
-//   async (data, { rejectWithValue, dispatch }) => {
-//     console.log("updated data", data);
-//     const response = await fetch(`${appConfig.ip}/post/${data.postId}`, {
-//       method: "PUT",
-//       headers: {
-//         "Content-Type": "application/json",
-//         Authorization: `Bearer ${token}`,
-//       },
-//       body: JSON.stringify(data),
-//     });
+export const updatePost = createAsyncThunk(
+  "post/updatePost",
+  async ({ postId, userId, content, postImages }, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/post/${postId}?userId=${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, postImages }),
+      });
 
-//     try {
-//       const result = await response.json();
-//       dispatch(showPost());
-//       return result;
-//     } catch (error) {
-//       return rejectWithValue(error);
-//     }
-//   }
-// );
+      if (!res.ok) throw new Error("Failed to update post");
+
+      return await res.json();
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
 
 export const postDetail = createSlice({
   name: "post",
@@ -454,7 +428,8 @@ export const postDetail = createSlice({
       })
       .addCase(showPost.fulfilled, (state, action) => {
         state.loading = false;
-        state.posts = action.payload;
+        state.posts = action.payload.content;
+        state.count = action.payload.totalElements;
       })
       .addCase(showPost.rejected, (state, action) => {
         state.loading = false;
@@ -498,15 +473,19 @@ export const postDetail = createSlice({
           ...(state.likesByPostId[postId] || {}),
           liked: liked,
         };
-      })
-      // SAVE
-      .addCase(toggleSavePost.fulfilled, (state, action) => {
-        const { postId, saved, saveCount } = action.payload;
+      });
+    // SAVE
+    builder.addCase(toggleSavePost.fulfilled, (state, action) => {
+      const { postId, saved, count, message } = action.payload;
 
-        state.savedByPostId[postId] = {
-          saved,
-          count,
-        };
+      state.savedByPostId[postId] = { saved, count };
+
+      toast.success(message);
+    });
+
+    builder
+      .addCase(toggleSavePost.rejected, () => {
+        toast.error("Something went wrong. Please try again.");
       })
       .addCase(getSavedPosts.pending, (state) => {
         state.savedPostsLoading = true;
@@ -553,9 +532,19 @@ export const postDetail = createSlice({
       .addCase(fetchPostById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
-      })
-      .addCase(hidePost.fulfilled, (state, action) => {
-        state.posts = state.posts.filter((p) => p.id !== action.payload);
+      });
+    builder.addCase(hidePost.fulfilled, (state, action) => {
+      const { postId, message } = action.payload;
+
+      // Remove post from feed
+      state.posts = state.posts.filter((post) => post.id !== postId);
+
+      toast.success(message);
+    });
+
+    builder
+      .addCase(hidePost.rejected, () => {
+        toast.error("Failed to remove post. Please try again.");
       })
       .addCase(reportPost.pending, (state) => {
         state.reportStatus = "loading";
@@ -570,32 +559,18 @@ export const postDetail = createSlice({
       .addCase(reportPost.rejected, (state, action) => {
         state.reportStatus = "failed";
         state.reportError = action.payload || action.error.message;
+      })
+      .addCase(deletePost.fulfilled, (state, action) => {
+        state.posts = state.posts.filter((p) => p.id !== action.payload);
+        toast.success("Post deleted");
+      })
+      .addCase(updatePost.fulfilled, (state, action) => {
+        const index = state.posts.findIndex((p) => p.id === action.payload.id);
+        if (index !== -1) {
+          state.posts[index] = action.payload;
+        }
+        toast.success("Post updated");
       });
-    // .addCase(deletePost.pending, (state) => {
-    //   state.loading = true;
-    // })
-    // .addCase(deletePost.fulfilled, (state, action) => {
-    //   state.loading = false;
-    // })
-    // .addCase(deletePost.rejected, (state, action) => {
-    //   state.loading = false;
-    //   state.error = action.payload;
-    // })
-
-    // .addCase(updatePost.pending, (state) => {
-    //   state.loading = true;
-    // })
-    // .addCase(updatePost.fulfilled, (state, action) => {
-    //   state.loading = false;
-    //   state.message = action.payload.message;
-    //   // state.categories = state.categories.map((ele) =>
-    //   //   ele.id == action.payload.id ? action.payload : ele
-    //   // );
-    // })
-    // .addCase(updatePost.rejected, (state, action) => {
-    //   state.loading = false;
-    //   state.error = action.payload.message;
-    // })
   },
 });
 
