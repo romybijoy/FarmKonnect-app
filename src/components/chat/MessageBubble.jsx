@@ -4,6 +4,7 @@ import { FaSmile } from "react-icons/fa";
 import Picker from "emoji-picker-react";
 import ReactionPopup from "./ReactionPopup";
 import EmojiPickerWrapper from "./EmojiPickerWrapper";
+import { MdBlock } from "react-icons/md";
 
 export default function MessageBubble({
   messageId,
@@ -12,16 +13,19 @@ export default function MessageBubble({
   chatType,
   senderProfile,
   reactions = [],
-  onReact, // function(messageId, emoji) to add or remove reaction
+  onReact,
+  onImageClick,
+  onDelete,
 }) {
   const isSentByMe = message.senderId === currentUserId;
   const [showPicker, setShowPicker] = useState(false);
   const [showReactionsPopup, setShowReactionsPopup] = useState(false);
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const pickerRef = useRef(null);
   const buttonRef = useRef(null);
 
   const bubbleStyles = isSentByMe
-    ? "bg-green-500 text-white rounded-tr-none"
+    ? "bg-[#7CB342] text-white rounded-tr-none"
     : "bg-white text-gray-900 rounded-tl-none";
 
   const handleEmojiClick = (emojiData) => {
@@ -48,6 +52,14 @@ export default function MessageBubble({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const closeMenu = () => setShowDeleteMenu(false);
+    if (showDeleteMenu) {
+      document.addEventListener("click", closeMenu);
+    }
+    return () => document.removeEventListener("click", closeMenu);
+  }, [showDeleteMenu]);
+
   const groupedReactions = reactions.reduce((acc, reaction) => {
     const { emoji, userId, userName, userImage } = reaction;
 
@@ -70,6 +82,51 @@ export default function MessageBubble({
     isSelf: reaction.userId === currentUserId,
   }));
 
+  const renderCaption = () => {
+    if (!message.content?.trim()) return null;
+
+    return (
+      <p
+        className={`mt-1 text-sm whitespace-pre-wrap ${
+          isSentByMe ? "text-white/90" : "text-gray-700"
+        }`}
+      >
+        {message.content}
+      </p>
+    );
+  };
+
+  if (message.type === "deleted") {
+    return (
+      <div
+        className={`flex ${
+          isSentByMe ? "justify-end" : "justify-start"
+        } mt-3 px-4`}
+      >
+        <div
+          className={`flex items-center gap-2 max-w-[75%] px-4 py-2 rounded-xl 
+          italic text-sm opacity-80
+          ${
+            isSentByMe
+              ? "bg-[#7CB342] text-green-100"
+              : "bg-white text-gray-500"
+          }`}
+        >
+          <MdBlock
+            size={14}
+            className={isSentByMe ? "text-green-200" : "text-gray-400"}
+          />
+
+          <span>
+            {isSentByMe
+              ? "You deleted this message"
+              : "This message was deleted"}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`flex ${
@@ -78,7 +135,7 @@ export default function MessageBubble({
     >
       {!isSentByMe && senderProfile && chatType === "group" && (
         <img
-          src={senderProfile.image || "profile.png"}
+          src={senderProfile.image || "/profile.png"}
           alt="Profile"
           className="w-8 h-8 rounded-full object-cover mb-1"
         />
@@ -88,7 +145,7 @@ export default function MessageBubble({
         className={`relative max-w-[75%] px-4 py-[1%] mt-[1%] ml-1 rounded-xl shadow-sm break-words ${bubbleStyles}`}
         onContextMenu={(e) => {
           e.preventDefault();
-          setShowPicker((prev) => !prev);
+          setShowDeleteMenu(true);
         }}
       >
         {/* Text */}
@@ -104,11 +161,13 @@ export default function MessageBubble({
             <img
               src={message.fileUrl}
               alt="Sent"
+              onClick={() => onImageClick(message.fileUrl)}
               className="rounded-lg max-w-[240px] max-h-[240px] object-cover"
             />
-            {message.content?.trim() && (
+            {/* {message.content?.trim() && (
               <p className="text-sm text-white/90">{message.content}</p>
-            )}
+            )} */}
+            {renderCaption()}
           </div>
         )}
         {message.type === "video" && message.fileUrl && (
@@ -118,9 +177,10 @@ export default function MessageBubble({
               controls
               className="rounded-lg max-w-[260px] max-h-[260px] object-cover"
             />
-            {message.content?.trim() && (
+            {/* {message.content?.trim() && (
               <p className="text-sm text-white/90">{message.content}</p>
-            )}
+            )} */}
+            {renderCaption()}
           </div>
         )}
         {message.type === "audio" && message.fileUrl && (
@@ -130,6 +190,55 @@ export default function MessageBubble({
               Your browser does not support the audio element.
             </audio>
           </div>
+        )}
+
+        {/* PDF */}
+        {message.type === "pdf" && message.fileUrl && (
+          <>
+            <a
+              href={message.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center gap-3 p-3 mb-2 pr-8 rounded-lg border no-underline ${
+                isSentByMe
+                  ? "border-green-500 text-white"
+                  : "border-gray-300 text-gray-800"
+              }`}
+            >
+              <span className="text-2xl">📄</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">
+                  {message.fileName || "PDF Document"}
+                </span>
+                <span className="text-xs opacity-80">Tap to open</span>
+              </div>
+            </a>
+            {renderCaption()}
+          </>
+        )}
+
+        {/* Excel */}
+        {message.type === "excel" && message.fileUrl && (
+          <>
+            <a
+              href={message.fileUrl}
+              download
+              className={`flex items-center gap-3 p-3 mb-2 pr-8 rounded-lg border no-underline ${
+                isSentByMe
+                  ? "border-green-500 text-white"
+                  : "border-gray-300 text-gray-800"
+              }`}
+            >
+              <span className="text-2xl">📊</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">
+                  {message.fileName || "Excel File"}
+                </span>
+                <span className="text-xs opacity-80">Tap to download</span>
+              </div>
+            </a>
+            {renderCaption()}
+          </>
         )}
 
         {/* Timestamp */}
@@ -193,6 +302,36 @@ export default function MessageBubble({
           onClose={() => setShowReactionsPopup(false)}
           onReact={onReact}
         />
+      )}
+
+      {showDeleteMenu && (
+        <div
+          className={`absolute z-50 bg-white rounded-md shadow-lg p-2 text-sm top-10 ${
+            isSentByMe ? "right-0" : "left-0"
+          }`}
+        >
+          <button
+            onClick={() => {
+              onDelete(message.id, "DELETE_FOR_ME");
+              setShowDeleteMenu(false);
+            }}
+            className="block w-full text-left px-3 py-1 hover:bg-gray-100"
+          >
+            Delete for me
+          </button>
+
+          {isSentByMe && (
+            <button
+              onClick={() => {
+                onDelete(message.id, "DELETE_FOR_EVERYONE");
+                setShowDeleteMenu(false);
+              }}
+              className="block w-full text-left px-3 py-1 text-red-600 hover:bg-gray-100"
+            >
+              Delete for everyone
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

@@ -20,12 +20,13 @@ const GroupChatHeader = ({ groupInfo }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  console.log(groupInfo);
   if (!groupInfo) return null;
 
   return (
     <div className="flex items-center justify-between px-4 py-2 bg-white shadow relative">
       <div className="flex items-center gap-3">
-        <div className="bg-green-500 rounded-full w-10 h-10 flex items-center justify-center text-white text-lg font-bold">
+        <div className="bg-[#689F38] rounded-full w-10 h-10 flex items-center justify-center text-white text-lg font-bold">
           {groupInfo.name[0]}
         </div>
         <div>
@@ -71,7 +72,7 @@ const GroupChatHeader = ({ groupInfo }) => {
       {showAddMembers && (
         <AddGroupMembers
           groupId={groupInfo.id}
-          existingMembers={groupInfo.members.map((m) => m.id)}
+          existingMembers={groupInfo.members.map((m) => m.userId)}
           onClose={() => setShowAddMembers(false)}
         />
       )}

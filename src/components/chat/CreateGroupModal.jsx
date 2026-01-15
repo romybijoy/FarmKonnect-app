@@ -86,7 +86,7 @@ const CreateGroupModal = ({
                       alt={user.username}
                       className="w-6 h-6 rounded-full"
                     />
-                    <span>{user.name}</span>
+                    <span>{user.username}</span>
                   </div>
                   {selectedUsers.includes(user.id) && (
                     <UserPlusIcon className="w-5 h-5 text-blue-600" />

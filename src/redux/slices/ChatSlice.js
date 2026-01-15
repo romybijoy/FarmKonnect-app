@@ -6,14 +6,13 @@ const token = localStorage.getItem("token");
 
 const ip = `${appConfig.ip}/api`;
 
-const userData = JSON.parse(localStorage.getItem("myInfo"));
-
 export const sendChatMessage = createAsyncThunk(
   "sendChatMessage",
-  async (data, { rejectWithValue, fulfillWithValue }) => {
-    console.log(data);
+  async (data, { rejectWithValue, fulfillWithValue, getState }) => {
+    const state = getState();
+    const userId = state.auth?.userInfo?.userId;
     const input = {
-      senderId: userData.id,
+      senderId: userId,
       receiverId: data.receiverId,
       content: data.content,
       groupId: data.groupId,
@@ -42,19 +41,17 @@ export const sendChatMessage = createAsyncThunk(
 //read action
 export const fetchMessages = createAsyncThunk(
   "chat/fetchMessages",
-  async ({ chatId, chatType, ip }, thunkAPI) => {
+  async ({ chatId, chatType, ip }, { thunkAPI, getState }) => {
     try {
+      const state = getState();
+      const userId = state.auth?.userInfo?.userId;
       const endpoint =
         chatType === "group"
           ? `${ip}/api/chat/history/group/${chatId}`
-          : `${ip}/api/chat/history/private?receiverId=${chatId}&senderId=${userData?.id}`;
+          : `${ip}/api/chat/history/private?receiverId=${chatId}&senderId=${userId}`;
 
-      const response = await fetch(endpoint, {
+      const response = await fetchWithAuth(endpoint, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
@@ -98,7 +95,6 @@ export const createGroup = createAsyncThunk(
 export const addGroupMember = createAsyncThunk(
   "group/addMember",
   async ({ groupId, userId }, { rejectWithValue }) => {
-    console.log(groupId, userId);
     try {
       const res = await fetchWithAuth(`${ip}/chat/groups/${groupId}/members`, {
         method: "POST",
@@ -139,9 +135,9 @@ export const getGroupMembers = createAsyncThunk(
 
 export const getAllGroups = createAsyncThunk(
   "group/getAll",
-  async (_, { rejectWithValue }) => {
+  async (userId, { rejectWithValue }) => {
     try {
-      const res = await fetchWithAuth(`${ip}/chat/groups`);
+      const res = await fetchWithAuth(`${ip}/chat/groups/user/${userId}`);
 
       if (!res.ok) {
         const error = await res.json();
@@ -181,6 +177,29 @@ export const getMembers = createAsyncThunk(
   }
 );
 
+/**
+ * Thunk: fetch group metadata by id
+ * Expected server response: { id, name, avatar, description?, memberIds: [id,...], ... }
+ */
+export const getGroupById = createAsyncThunk(
+  "groups/getById",
+  async (groupId, { rejectWithValue }) => {
+    try {
+      const res = await fetchWithAuth(`${ip}/chat/groups/${groupId}`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(
+          `Failed to fetch group ${groupId}: ${res.status} ${text}`
+        );
+      }
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || "Failed to fetch group");
+    }
+  }
+);
+
 export const chatDetail = createSlice({
   name: "chat",
   initialState: {
@@ -201,11 +220,19 @@ export const chatDetail = createSlice({
     mbrsError: null,
     selectedChatId: null,
     selectedType: null,
+    conversationsMap: {},
+    conversations: [],
+    byId: {},
+    currentUserId: null,
   },
 
   reducers: {
     receiveChatMessage: (state, action) => {
       state.messages.push(action.payload);
+    },
+
+    setCurrentUserId: (state, action) => {
+      state.currentUserId = action.payload;
     },
 
     setUsers: (state, action) => {
@@ -219,6 +246,7 @@ export const chatDetail = createSlice({
     addMessage: (state, action) => {
       const { message, currentUserId } = action.payload;
       console.log("Received message:", message);
+      console.log(action.payload);
 
       const chatPartnerId =
         message.senderId === currentUserId
@@ -259,6 +287,131 @@ export const chatDetail = createSlice({
     setGroupMessages: (state, action) => {
       const { groupId, messages } = action.payload;
       state.groupMessages[groupId] = messages;
+    },
+
+    // For setting conversations list
+    upsertConversationFromMessage: (state, action) => {
+      const { message, currentUserId, usersMap } = action.payload;
+      console.log(action.payload);
+
+      const { senderId, receiverId, groupId, content, type, timestamp } =
+        message;
+
+      // 1️Determine conversation ID
+      const isGroup = !!groupId;
+      const convId = isGroup
+        ? groupId
+        : senderId === currentUserId
+        ? receiverId
+        : senderId;
+
+      // Determine display name + avatar
+      let name = "";
+      let avatar = "";
+
+      if (isGroup) {
+        const group = usersMap[groupId]; // if you store groups separately
+        name = group?.name || "Group Chat";
+        avatar = group?.image || "group.png";
+      } else {
+        const otherUserId = senderId === currentUserId ? receiverId : senderId;
+        const user = usersMap[otherUserId];
+        console.log(user);
+        name = user?.name || "Unknown User";
+        avatar = user?.image || "/profile.png";
+      }
+
+      const existing = state.conversationsMap[convId];
+
+      // unread logic (local only)
+      const isIncoming = senderId !== currentUserId;
+      const unreadCount = existing
+        ? existing.unreadCount + (isIncoming ? 1 : 0)
+        : isIncoming
+        ? 1
+        : 0;
+
+      // Determine preview last message text
+      const previewText =
+        type === "IMAGE" ? "📷 Photo" : content || "New message";
+
+      // Build preview object
+      const preview = {
+        id: convId,
+        name,
+        avatar,
+        lastMessage: previewText,
+        lastMessageTime: timestamp,
+        unreadCount,
+        isGroup,
+      };
+
+      // 6️⃣ Save to Map
+      state.conversationsMap[convId] = preview;
+
+      // 7️⃣ Build sorted preview list
+      state.conversations = Object.values(state.conversationsMap).sort(
+        (a, b) =>
+          new Date(b.lastMessageTime).getTime() -
+          new Date(a.lastMessageTime).getTime()
+      );
+    },
+
+    markConversationRead: (state, action) => {
+      const convId = action.payload;
+      if (state.conversationsMap[convId]) {
+        state.conversationsMap[convId].unreadCount = 0;
+      }
+
+      state.conversations = Object.values(state.conversationsMap).sort(
+        (a, b) =>
+          new Date(b.lastMessageTime).getTime() -
+          new Date(a.lastMessageTime).getTime()
+      );
+    },
+    upsertMessage: (state, action) => {
+      const message = action.payload;
+      const currentUserId = state.currentUserId;
+
+      // GROUP
+      if (message.groupId) {
+        const old = state.groupMessages[message.groupId] || [];
+        const exists = old.some((m) => m.id === message.id);
+
+        state.groupMessages[message.groupId] = exists
+          ? old.map((m) => (m.id === message.id ? message : m))
+          : [...old, message];
+        return;
+      }
+
+      // PRIVATE
+      const chatId =
+        message.senderId === currentUserId
+          ? message.receiverId
+          : message.senderId;
+
+      const old = state.privateMessages[chatId] || [];
+      const exists = old.some((m) => m.id === message.id);
+
+      state.privateMessages[chatId] = exists
+        ? old.map((m) => (m.id === message.id ? message : m))
+        : [...old, message];
+    },
+
+    upsertGroupMessage: (state, action) => {
+      const msg = action.payload;
+      const groupId = msg.groupId;
+
+      const list = state.groupMessages[groupId] || [];
+      const index = list.findIndex((m) => m.id === msg.id);
+
+      if (index !== -1) {
+        list[index] = msg; // 🔥 delete/edit
+      } else {
+        list.push(msg); // 🔥 new
+      }
+
+      state.groupMessages[groupId] = list;
     },
   },
 
@@ -379,6 +532,24 @@ export const chatDetail = createSlice({
       .addCase(getMembers.rejected, (state, action) => {
         state.mbrsLoading = false;
         state.mbrsError = action.payload;
+      })
+      .addCase(getGroupById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getGroupById.fulfilled, (state, action) => {
+        const group = action.payload;
+        if (group && group.id) {
+          state.byId[group.id] = {
+            ...(state.byId[group.id] || {}),
+            ...group,
+          };
+        }
+        state.loading = false;
+      })
+      .addCase(getGroupById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error?.message;
       });
   },
 });
@@ -390,5 +561,13 @@ export const {
   setPrivateMessages,
   setGroupMessages,
   setSelectedChat,
+  upsertConversationFromMessage,
+  markConversationRead,
+  upsertMessage,
+  upsertGroupMessage,
+  setCurrentUserId,
 } = chatDetail.actions;
+
+export const selectGroupById = (state, id) => state.groups?.byId?.[id] || null;
+
 export default chatDetail.reducer;

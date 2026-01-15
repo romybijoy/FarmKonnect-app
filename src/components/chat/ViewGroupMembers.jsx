@@ -29,7 +29,7 @@ const ViewGroupMembers = ({ memberIds, onClose }) => {
               <li key={user.id} className="border-b py-2">
                 <div className="flex items-center gap-3">
                   <img
-                    src={user.profilePicture || "/default.png"}
+                    src={user.profilePicture || "/profile.png"}
                     alt={user.username}
                     className="w-8 h-8 rounded-full"
                   />
@@ -44,7 +44,7 @@ const ViewGroupMembers = ({ memberIds, onClose }) => {
         )}
         <button
           onClick={onClose}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+          className="mt-4 px-4 py-2 bg-[#689F38] text-white rounded"
         >
           Close
         </button>

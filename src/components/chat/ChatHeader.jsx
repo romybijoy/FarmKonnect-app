@@ -9,20 +9,19 @@ dayjs.extend(relativeTime);
 
 const ChatHeader = ({ selectedChat, onCall }) => {
   const dispatch = useDispatch();
-  const presence = useSelector(makeSelectUserPresence(selectedChat?.email));
+  const presence = useSelector(makeSelectUserPresence(selectedChat?.id));
   const typingByEmail = useSelector((state) => state.typing.typingByEmail);
   const isTyping = selectedChat?.email && typingByEmail[selectedChat.email];
 
-  console.log('eere' , isTyping)
   useEffect(() => {
-    if (!selectedChat?.email) return;
-    dispatch(fetchPresence(selectedChat?.email));
+    if (!selectedChat?.id) return;
+    dispatch(fetchPresence(selectedChat?.id));
     const interval = setInterval(
-      () => dispatch(fetchPresence(selectedChat?.email)),
+      () => dispatch(fetchPresence(selectedChat?.id)),
       10000
     );
     return () => clearInterval(interval);
-  }, [dispatch, selectedChat?.email]);
+  }, [dispatch, selectedChat?.id]);
 
   const renderStatus = () => {
     if (!presence) return null;
@@ -32,12 +31,12 @@ const ChatHeader = ({ selectedChat, onCall }) => {
     }
 
     if (presence.online) {
-      return <span className="text-green-600 font-medium">Online</span>;
+      return <span className="text-[#689F38] font-medium">Online</span>;
     }
 
     if (presence.lastSeen) {
       return (
-        <span className="text-gray-500">
+        <span className="text-[#689F38]">
           Last seen {dayjs(presence.lastSeen).fromNow()}
         </span>
       );
@@ -76,14 +75,14 @@ const ChatHeader = ({ selectedChat, onCall }) => {
       <div className="flex gap-2">
         <button
           onClick={() => onCall("audio")}
-          className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow"
+          className="bg-[#3B82F6] hover:bg-blue-600 text-white p-2 rounded-full shadow"
           title="Start audio call"
         >
           📞
         </button>
         <button
           onClick={() => onCall("video")}
-          className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full shadow"
+          className="bg-[#689F38] hover:bg-[#5a8c30] text-white p-2 rounded-full shadow"
           title="Start video call"
         >
           🎥

@@ -7,7 +7,12 @@ import CreateGroupModal from "./CreateGroupModal";
 import { createGroup } from "../../redux/slices/ChatSlice";
 import { toast } from "react-toastify";
 
-export default function ChatSidebar({ selectedChat, chatType, onSelectChat, onChatsLoaded }) {
+export default function ChatSidebar({
+  selectedChat,
+  chatType,
+  onSelectChat,
+  onChatsLoaded,
+}) {
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [groupName, setGroupName] = useState("");
   const me = JSON.parse(localStorage.getItem("myInfo")) || [];
@@ -66,43 +71,45 @@ export default function ChatSidebar({ selectedChat, chatType, onSelectChat, onCh
       });
   };
 
-  const isSelected = (id,type) => selectedChat?.id === id && chatType === type;
+  const isSelected = (id, type) => selectedChat?.id === id && chatType === type;
   return (
     <div className="w-64 h-full overflow-y-auto bg-white px-3 py-4 border-r font-sans">
-      <h2 className="text-lg font-bold text-blue-600 mb-4">Messages</h2>
+      <h2 className="text-lg font-bold text-black mb-4">Messages</h2>
 
       <h3 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">
         Chats
       </h3>
-      {following?.length > 0
-        ? following.map((u) => {
-            return (
-              <div
-                key={u.id}
-                className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition truncate text-sm
+      <div className="space-y-1 mb-4">
+        {following?.length > 0
+          ? following.map((u) => {
+              return (
+                <div
+                  key={u.id}
+                  className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition truncate text-sm
     ${
       isSelected(u.id, "private")
-        ? "bg-blue-100 text-blue-700 font-semibold"
-        : "hover:bg-blue-50 text-gray-800"
+        ? "bg-[#DFF5E1] text-[#4B6F2C] font-medium no-underline"
+        : "hover:bg-[#EDF7EE] text-gray-600 no-underline"
     }
   `}
-                onClick={() => handleSelect(u, "private")}
-              >
-                <img
-                  src={u?.profilePicture || "profile.png"}
-                  alt={`${u.username || "User"}'s profile`}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-                <span className="truncate">{u.username}</span>
+                  onClick={() => handleSelect(u, "private")}
+                >
+                  <img
+                    src={u?.profilePicture || "/profile.png"}
+                    alt={`${u.username || "User"}'s profile`}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                  <span className="truncate">{u.username}</span>
+                </div>
+              );
+            })
+          : Array.from({ length: 5 }).map((_, idx) => (
+              <div key={idx} className="flex items-center gap-3 p-2">
+                <div className="w-8 h-8 rounded-full bg-gray-300 animate-pulse" />
+                <div className="h-5 w-32 bg-gray-200 animate-pulse rounded" />
               </div>
-            );
-          })
-        : Array.from({ length: 5 }).map((_, idx) => (
-            <div key={idx} className="flex items-center gap-3 p-2">
-              <div className="w-8 h-8 rounded-full bg-gray-300 animate-pulse" />
-              <div className="h-5 w-32 bg-gray-200 animate-pulse rounded" />
-            </div>
-          ))}
+            ))}
+      </div>
 
       {/* ==== Groups ==== */}
       <div className="flex items-center mt-3 justify-between mb-2">
@@ -132,12 +139,12 @@ export default function ChatSidebar({ selectedChat, chatType, onSelectChat, onCh
                 className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition truncate text-sm
     ${
       isSelected(g.id, "group")
-        ? "bg-green-100 text-green-700 font-semibold"
-        : "hover:bg-green-50 text-gray-800"
+        ? "bg-[#DFF5E1] text-[#4B6F2C] font-semibold"
+        : "hover:bg-[#EDF7EE] text-gray-600"
     }
   `}
               >
-                <div className="bg-green-500 rounded-full w-9 h-9 flex items-center justify-center text-white text-lg font-bold">
+                <div className="bg-[#689F38] rounded-full w-8 h-8 flex items-center justify-center text-white text-lg font-bold">
                   {g.name[0]}
                 </div>
                 <div className="truncate">{g.name}</div>

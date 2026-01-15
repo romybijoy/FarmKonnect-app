@@ -209,7 +209,6 @@ body {
   scrollbar-width: none; /* Firefox */
 }
 
-
 /* tighten modal width a bit if needed */
 .modal-dialog {
   max-width: 520px;
@@ -218,4 +217,34 @@ body {
 /* textarea placeholder line-height improvements */
 .form-control[as="textarea"]::placeholder {
   line-height: 1.4;
+}
+
+@keyframes story-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(104, 159, 56, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(104, 159, 56, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(104, 159, 56, 0);
+  }
+}
+
+.animate-story-ring {
+  animation: story-pulse 2s infinite;
+}
+
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.25s ease-out;
 }

@@ -7,15 +7,13 @@ const token = localStorage.getItem("token");
 
 const ip = `${appConfig.ip}/api`;
 
-// 🔁 Async thunk to fetch presence
+// Async thunk to fetch presence
 export const fetchPresence = createAsyncThunk(
   "presence/fetchPresence",
-  async (email, { rejectWithValue, fulfillWithValue }) => {
+  async (userId, { rejectWithValue, fulfillWithValue }) => {
 
-
-    console.log(email)
     try {
-      const response = await fetchWithAuth(`${ip}/presence/${email}`, {
+      const response = await fetchWithAuth(`${ip}/presence/${userId}`, {
         method: "GET",
       });
 
@@ -24,7 +22,7 @@ export const fetchPresence = createAsyncThunk(
       }
 
       const data = await response.json();
-      return fulfillWithValue({ email, ...data });
+      return fulfillWithValue({ userId, ...data });
     } catch (error) {
       console.error("fetchPresence error:", error);
       return rejectWithValue(error.message || "Error fetching presence");
@@ -37,14 +35,14 @@ const PresenceSlice = createSlice({
   name: "presence",
   initialState: {
     data: {},
-    users: {}, // email -> { online, lastSeen }
+    users: {}, // userId -> { online, lastSeen }
     loading: false,
     error: null,
   },
   reducers: {
      setUserPresence(state, action) {
-      const { email, presence } = action.payload;
-      state.data[email] = presence;
+      const { userId, presence } = action.payload;
+      state.data[userId] = presence;
     },
   },
   extraReducers: (builder) => {
@@ -53,9 +51,9 @@ const PresenceSlice = createSlice({
         state.loading = true;
       })
       .addCase(fetchPresence.fulfilled, (state, action) => {
-        const { email, online, lastSeen } = action.payload;
+        const { userId, online, lastSeen } = action.payload;
         console.log(action.payload)
-        state.users[email] = { online, lastSeen };
+        state.users[userId] = { online, lastSeen };
         state.loading = false;
       })
       .addCase(fetchPresence.rejected, (state, action) => {

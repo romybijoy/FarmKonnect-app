@@ -64,7 +64,7 @@ export default function ReactionPopup({
             >
               <div className="flex items-center space-x-2">
                 <img
-                  src={r.userImage || "profile.png"}
+                  src={r.userImage || "/profile.png"}
                   alt={r.userName}
                   className="w-8 h-8 rounded-full object-cover"
                 />
