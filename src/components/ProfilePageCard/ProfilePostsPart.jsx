@@ -16,7 +16,7 @@ const ProfilePostsPart = ({ user, post }) => {
     (state) => state.auth?.userInfo?.userId
   );
 
-  const isOwnProfile = loggedInUserId === user?.userId;
+  const isOwnProfile = loggedInUserId === user?.id;
 
   const renderComponent = () => {
     switch (activeTab) {
@@ -26,7 +26,7 @@ const ProfilePostsPart = ({ user, post }) => {
       case "Followers":
         return (
           <Followers
-            profileUserId={user.userId}
+            profileUserId={user.id ? user.id : user.userId}
             viewerId={loggedInUserId}
           />
         );
@@ -34,7 +34,7 @@ const ProfilePostsPart = ({ user, post }) => {
       case "Following":
         return (
           <Following
-            profileUserId={user.userId}
+            profileUserId={user.id ? user.id : user.userId}
             viewerId={loggedInUserId}
           />
         );

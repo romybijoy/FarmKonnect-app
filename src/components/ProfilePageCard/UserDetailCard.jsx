@@ -41,13 +41,14 @@ const UserDetailCard = ({
   }, [openEditModal]);
 
   useEffect(() => {
-    if (user?.userId) {
-      dispatch(fetchFollowCounts(user.userId));
+    console.log(user);
+    if (user?.id) {
+      dispatch(fetchFollowCounts(user?.id ? user?.id : user?.userId));
     }
-  }, [user?.userId, dispatch]);
+  }, [user?.id, user?.userId, dispatch]);
 
   useEffect(() => {
-    setPreviewImage(user.imageUrl || user.image || null);
+    setPreviewImage(user?.imageUrl || user?.image || null);
   }, [user]);
 
   return (
@@ -66,7 +67,7 @@ const UserDetailCard = ({
 
           {/* Name & Verified */}
           <div className="flex justify-center items-center gap-2 mt-4">
-            <h2 className="text-xl font-semibold text-gray-800">{user.name}</h2>
+            <h2 className="text-xl font-semibold text-gray-800">{user?.name}</h2>
             <CheckCircle className="text-[#689F38] w-5 h-5" />
           </div>
           {/* Edit / Follow Button */}
@@ -81,7 +82,7 @@ const UserDetailCard = ({
           ) : (
             <FollowButton
               viewerId={loggedInUserId}
-              targetUserId={user.userId}
+              targetUserId={user?.id ? user?.id : user?.userId}
             />
           )}
 
@@ -93,17 +94,17 @@ const UserDetailCard = ({
             </div>
             <div>
               <span className="font-bold text-gray-800">
-                {followersCount
-                  ? followersCount || 0
-                  : user.followersCount || 0}
+                {user?.followersCount
+                  ? user?.followersCount || 0
+                  : followersCount || 0}
               </span>{" "}
               followers
             </div>
             <div>
               <span className="font-bold text-gray-800">
-                {followingCount
-                  ? followingCount || 0
-                  : user.followingCount || 0}
+                {user?.followingCount
+                  ? user?.followingCount || 0
+                  : followingCount || 0}
               </span>{" "}
               following
             </div>
@@ -112,17 +113,17 @@ const UserDetailCard = ({
           {/* Location */}
           {user.district && (
             <div className="mt-3 text-sm text-gray-700 font-medium">
-              {user.district}
+              {user?.district}
             </div>
           )}
 
           {/* Bio */}
           <div className="mt-2 text-sm text-gray-600">
-            {user.description || user.bio ? (
-              user.description ? (
-                user.description
+            {user?.description || user?.bio ? (
+              user?.description ? (
+                user?.description
               ) : (
-                user.bio
+                user?.bio
               )
             ) : (
               <span className="italic text-gray-400">

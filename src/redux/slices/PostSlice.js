@@ -428,12 +428,12 @@ export const postDetail = createSlice({
       })
       .addCase(showPost.fulfilled, (state, action) => {
         state.loading = false;
-        state.posts = action.payload.content;
+        state.profilePosts = action.payload.content;
         state.count = action.payload.totalElements;
       })
       .addCase(showPost.rejected, (state, action) => {
         state.loading = false;
-        state.posts = [];
+        state.profilePosts = [];
         state.error = action.payload.message;
       })
       .addCase(showFeed.pending, (state) => {
