@@ -8,16 +8,16 @@ const token = localStorage.getItem("token");
 
 const ip = `${appConfig.ip}/api`;
 
-// ✅ Fetch comments
+//   Fetch comments
 export const fetchComments = createAsyncThunk(
   "comments/fetchComments",
   async (postId) => {
     const res = await fetchWithAuth(`${ip}/post/${postId}/comments`);
     return res.json();
-  }
+  },
 );
 
-// ✅ Add comment
+//   Add comment
 export const addComment = createAsyncThunk(
   "comments/addComment",
   async ({ postId, userId, content, parentId = null }) => {
@@ -35,7 +35,7 @@ export const addComment = createAsyncThunk(
     }
 
     return await res.json(); // direct parse since body exists
-  }
+  },
 );
 
 export const fetchCommentCount = createAsyncThunk(
@@ -47,7 +47,7 @@ export const fetchCommentCount = createAsyncThunk(
     }
     const count = await response.json(); // backend returns number
     return { postId, count }; // 👈 shape matches your reducer
-  }
+  },
 );
 
 const commentSlice = createSlice({

@@ -44,7 +44,7 @@ function AllSuggestions() {
           <p className="text-sm text-red-500 mb-4">{error}</p>
         )}
 
-        {/* ✅ NICE EMPTY STATE */}
+        {/*   NICE EMPTY STATE */}
         {!loading && !error && items.length === 0 && (
           <div className="mt-24 flex flex-col items-center text-center">
             <div className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center mb-4">
@@ -60,7 +60,7 @@ function AllSuggestions() {
           </div>
         )}
 
-        {/* ✅ GRID SO IT DOESN’T FEEL EMPTY WHEN THERE *ARE* RESULTS */}
+        {/*   GRID SO IT DOESN’T FEEL EMPTY WHEN THERE *ARE* RESULTS */}
         {!loading && !error && items.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2">
             {items.map((item) => (

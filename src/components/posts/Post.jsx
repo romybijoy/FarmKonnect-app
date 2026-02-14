@@ -71,7 +71,7 @@ function Post({ post }) {
   const [selectedFiles, setSelectedFiles] = useState([]); // { name, dataUrl }
   const [imgAfterCrop, setImgAfterCrop] = useState([]); // previews
   const commentCount = useSelector(
-    (state) => state.comments.counts[post.id] || 0
+    (state) => state.comments.counts[post.id] || 0,
   );
 
   const likeData = useSelector((state) => state.post.likesByPostId[post?.id]);
@@ -150,8 +150,8 @@ function Post({ post }) {
     Array.isArray(post.postImages) && post.postImages.length > 0
       ? post.postImages
       : post.postImage
-      ? [post.postImage]
-      : [];
+        ? [post.postImage]
+        : [];
 
   // ---------- Actions ----------
   const handleLike = () => dispatch(likePost({ postId: post.id, userId }));
@@ -165,7 +165,7 @@ function Post({ post }) {
           name: userData.name,
           profileImage: userData.profileImage || null,
         },
-      })
+      }),
     );
 
   // ---------- Report submission handler ----------
@@ -188,7 +188,7 @@ function Post({ post }) {
           reporterId: userId,
           reason: reportReason,
           details: reportDetails || null,
-        })
+        }),
       ).unwrap(); // unwrap to catch rejection here
 
       setReportSuccess(true);
@@ -210,7 +210,7 @@ function Post({ post }) {
 
       const finalImages = [...existingImages, ...newImageUrls].slice(
         0,
-        MAX_IMAGES
+        MAX_IMAGES,
       );
 
       await dispatch(
@@ -219,7 +219,7 @@ function Post({ post }) {
           userId,
           content: editContent,
           postImages: finalImages,
-        })
+        }),
       ).unwrap();
 
       setEditOpen(false);
@@ -241,7 +241,7 @@ function Post({ post }) {
       MAX_IMAGES -
         existingImages.length -
         newImageUrls.length -
-        selectedFiles.length
+        selectedFiles.length,
     );
 
     if (available <= 0) {
@@ -271,7 +271,7 @@ function Post({ post }) {
         setSelectedFiles((prev) => {
           const next = [...prev, ...results];
 
-          // ✅ start cropping immediately if nothing was queued before
+          //   start cropping immediately if nothing was queued before
           if (prev.length === 0 && results.length > 0) {
             setCurrentIndex(0);
           }
@@ -331,7 +331,7 @@ function Post({ post }) {
         0,
         0,
         px.width,
-        px.height
+        px.height,
       );
 
       const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
@@ -433,7 +433,7 @@ function Post({ post }) {
                           toggleSavePost({
                             postId: post.id,
                             userId: userData.id,
-                          })
+                          }),
                         )
                       }
                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"

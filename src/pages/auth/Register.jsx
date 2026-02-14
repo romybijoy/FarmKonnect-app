@@ -1,5 +1,8 @@
 import React, { useState } from "react";
-import { createUser, checkEmailAvailability } from "../../redux/slices/UserSlice";
+import {
+  createUser,
+  checkEmailAvailability,
+} from "../../redux/slices/UserSlice";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { Firebase } from "../../firebase/config";
@@ -30,7 +33,7 @@ const Register = () => {
   const dispatch = useDispatch();
   const inputRef = useRef();
   const { user, message, error, loading, emailCheck } = useSelector(
-    (state) => state.app
+    (state) => state.app,
   );
 
   const handleInputChange = (e) => {
@@ -92,7 +95,12 @@ const Register = () => {
         setValError("User with email already exists !!!");
       } else if (res.payload && !res.payload.error) {
         toast.success("User registered successfully, verify otp");
-        navigate("/verifyotp");
+        navigate("/verifyotp", {
+          state: {
+            purpose: "register",
+            email: formData.email,
+          },
+        });
       } else {
         setValError("Something went wrong");
       }
@@ -111,8 +119,8 @@ const Register = () => {
   const emailFeedbackMessage = emailFormatInvalid
     ? "Please enter a valid email address."
     : emailServerInvalid
-    ? emailCheck.message || "Email already registered."
-    : "";
+      ? emailCheck.message || "Email already registered."
+      : "";
 
   return (
     <div

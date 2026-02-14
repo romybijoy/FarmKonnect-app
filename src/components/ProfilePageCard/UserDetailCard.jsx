@@ -41,7 +41,6 @@ const UserDetailCard = ({
   }, [openEditModal]);
 
   useEffect(() => {
-    console.log(user);
     if (user?.id) {
       dispatch(fetchFollowCounts(user?.id ? user?.id : user?.userId));
     }

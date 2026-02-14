@@ -78,18 +78,17 @@ const EditProfileModal = ({ show, handleClose, user }) => {
       toast.error("Failed to upload image");
     }
   };
+  
 
   const handleSubmit = async () => {
     try {
-      console.log("Submitting formData:", formData);
 
       if (formData.email !== user.email && !isEmailEditable) {
         toast.error("Please verify OTP before changing your email.");
         return;
       }
-
       await dispatch(
-        updateUser({ data: formData, userId: user.userId })
+        updateUser({ data: formData, userId: user.id })
       ).unwrap();
       toast.success("Profile updated!");
       localStorage.removeItem("verifiedEmail");

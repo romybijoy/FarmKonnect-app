@@ -12,7 +12,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const dispatch = useDispatch(); 
+  const dispatch = useDispatch();
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -21,8 +21,8 @@ const ForgotPassword = () => {
 
     try {
       const result = await dispatch(forgotPassword({ email })).unwrap();
-      setMessage("✅ A password reset link has been sent to your email.");
-       navigate("/forgotPassword");
+      setMessage("  A password reset link has been sent to your email.");
+      navigate("/forgotPassword");
     } catch (err) {
       toast.error(err || "Something went wrong");
     } finally {

@@ -48,8 +48,8 @@ export const WebRTCProvider = ({ children }) => {
     if (!pc.current || !pc.current.remoteDescription) return;
     for (const candidate of list) {
       try {
-        -(await pc.current.addIceCandidate(candidate));
-        +(await pc.current.addIceCandidate(new RTCIceCandidate(candidate)));
+        await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+
         console.log("Flushed pending ICE candidate");
       } catch (err) {
         console.error("Failed to flush ICE:", err);
@@ -91,21 +91,21 @@ export const WebRTCProvider = ({ children }) => {
           "localDescription:",
           pc.current.localDescription?.type,
           "remoteDescription:",
-          pc.current.remoteDescription?.type
+          pc.current.remoteDescription?.type,
         );
 
         if (pc.current.signalingState !== "have-local-offer") {
           console.warn(
             "[WebRTC] Ignoring answer because signalingState is",
             pc.current.signalingState,
-            "expected have-local-offer"
+            "expected have-local-offer",
           );
           return;
         }
 
         try {
           await pc.current.setRemoteDescription(
-            new RTCSessionDescription({ type: "answer", sdp: signal.sdp })
+            new RTCSessionDescription({ type: "answer", sdp: signal.sdp }),
           );
           console.log("[WebRTC] Remote answer applied");
         } catch (err) {
@@ -166,7 +166,7 @@ export const WebRTCProvider = ({ children }) => {
         receiverId,
       });
     },
-    [userId]
+    [userId],
   );
 
   useEffect(() => {
@@ -225,7 +225,7 @@ export const WebRTCProvider = ({ children }) => {
           console.warn(
             "[attachRemoteMedia] Video play failed:",
             err?.name,
-            err?.message
+            err?.message,
           );
         });
     } else {
@@ -245,7 +245,7 @@ export const WebRTCProvider = ({ children }) => {
           console.warn(
             "[attachRemoteMedia] Audio play failed:",
             err?.name,
-            err?.message
+            err?.message,
           );
         });
     } else {
@@ -294,7 +294,7 @@ export const WebRTCProvider = ({ children }) => {
         "[ontrack] kind:",
         track?.kind,
         "streams:",
-        event.streams?.length
+        event.streams?.length,
       );
 
       if (!track) {
@@ -327,7 +327,7 @@ export const WebRTCProvider = ({ children }) => {
 
       console.log(
         "[ontrack] Remote stream now has tracks:",
-        remoteStream.getTracks().map((t) => t.kind)
+        remoteStream.getTracks().map((t) => t.kind),
       );
 
       remoteStreamRef.current = remoteStream;
@@ -357,7 +357,7 @@ export const WebRTCProvider = ({ children }) => {
               console.warn(
                 "Remote video play failed:",
                 err?.name,
-                err?.message
+                err?.message,
               );
             }
           });
@@ -408,7 +408,7 @@ export const WebRTCProvider = ({ children }) => {
     if (activePeerIdRef.current && activePeerIdRef.current !== targetId) {
       console.warn(
         "[startCall] ending previous call with",
-        activePeerIdRef.current
+        activePeerIdRef.current,
       );
       endCall();
     }
@@ -446,7 +446,7 @@ export const WebRTCProvider = ({ children }) => {
           readyState: t.readyState,
           muted: t.muted,
           settings: t.getSettings(),
-        }))
+        })),
       );
     } catch (err) {
       console.error("getUserMedia failed:", err);
@@ -473,7 +473,7 @@ export const WebRTCProvider = ({ children }) => {
         track: sender.track?.kind,
         enabled: sender.track?.enabled,
         settings: sender.track?.getSettings(),
-      }))
+      })),
     );
     remoteIdRef.current = targetId;
 
@@ -520,7 +520,7 @@ export const WebRTCProvider = ({ children }) => {
     try {
       // 1) Apply remote offer FIRST
       await pc.current.setRemoteDescription(
-        new RTCSessionDescription({ type: "offer", sdp: offer.sdp })
+        new RTCSessionDescription({ type: "offer", sdp: offer.sdp }),
       );
 
       // 2) Flush any buffered ICE candidates (they now have a remote description to bind to)

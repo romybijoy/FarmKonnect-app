@@ -15,7 +15,9 @@ const OtpVerification = () => {
   const { user } = useSelector((state) => state.app);
 
   const [email, setEmail] = useState(initialEmail || user?.email || "");
-  const [otpSent, setOtpSent] = useState(false);
+  const isFromRegister = purpose === "register";
+
+  const [otpSent, setOtpSent] = useState(isFromRegister);
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const [minutes, setMinutes] = useState(1);
   const [seconds, setSeconds] = useState(0);
@@ -54,7 +56,7 @@ const OtpVerification = () => {
       return;
     }
     dispatch(
-      regenerateOTP({ email, isUpdateEmail: true, currentEmail: initialEmail })
+      regenerateOTP({ email, isUpdateEmail: true, currentEmail: initialEmail }),
     );
     setOtpSent(true);
     setMinutes(1);
@@ -63,7 +65,9 @@ const OtpVerification = () => {
   };
 
   const resendOTP = () => {
-    dispatch(regenerateOTP({ email, isUpdateEmail: true, currentEmail: initialEmail }));
+    dispatch(
+      regenerateOTP({ email, isUpdateEmail: true, currentEmail: initialEmail }),
+    );
     setMinutes(1);
     setSeconds(0);
     toast.info("OTP resent to " + email);
@@ -85,7 +89,7 @@ const OtpVerification = () => {
         otp: otpString,
         isUpdateEmail,
         newEmail: email,
-      })
+      }),
     )
       .unwrap()
       .then(() => {
@@ -94,8 +98,9 @@ const OtpVerification = () => {
         if (isUpdateEmail) {
           localStorage.setItem("emailOtpVerified", "true");
           localStorage.setItem("verifiedEmail", email);
-          console.log("first")
-         navigate("/profile", { state: { openEditModal: true, verifiedEmail: email } });
+          navigate("/profile", {
+            state: { openEditModal: true, verifiedEmail: email },
+          });
         } else {
           navigate("/login");
         }
@@ -117,7 +122,11 @@ const OtpVerification = () => {
       <div className="flex items-center justify-center h-screen">
         <div className="bg-white/20 backdrop-blur-md p-6 rounded-lg shadow-lg w-96 text-center">
           <h2 className="text-white text-2xl font-semibold mb-4">
-            {otpSent ? "Verify OTP" : "Edit & Verify Email"}
+            {isFromRegister
+              ? "Verify OTP"
+              : otpSent
+                ? "Verify OTP"
+                : "Edit & Verify Email"}
           </h2>
 
           {/* Email Input */}
