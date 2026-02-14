@@ -2,13 +2,18 @@ import { useEffect, useState, useRef } from "react";
 import { FaEllipsisV } from "react-icons/fa";
 import AddGroupMembers from "./AddGroupMembers"; // modal component
 import ViewGroupMembers from "./ViewGroupMembers"; // optional: you can create this modal too
+import { useSelector } from "react-redux";
 
 const GroupChatHeader = ({ groupInfo }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [showMembersList, setShowMembersList] = useState(false);
   const dropdownRef = useRef();
+  const typingByEmail = useSelector((state) => state.typing.typingByEmail);
 
+  const typingUser = typingByEmail?.[groupInfo?.id];
+
+console.log(groupInfo);
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -31,8 +36,16 @@ const GroupChatHeader = ({ groupInfo }) => {
         </div>
         <div>
           <h2 className="text-lg font-semibold">{groupInfo.name}</h2>
-          <p className="text-sm text-gray-500">
-            {groupInfo.members.length} members
+          <p className="text-sm">
+            {typingUser ? (
+              <span className="text-[#689F38] animate-pulse">
+                {typingUser} is typing...
+              </span>
+            ) : (
+              <span className="text-gray-500">
+                {groupInfo.members.length} members
+              </span>
+            )}
           </p>
         </div>
       </div>

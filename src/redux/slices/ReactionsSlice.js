@@ -2,7 +2,6 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { appConfig } from "../../config";
 import { fetchWithAuth } from "../../service/FetchService";
 
-
 const ip = `${appConfig.ip}/api`;
 
 // Get reactions for a message
@@ -12,7 +11,7 @@ export const fetchReactions = createAsyncThunk(
     const res = await fetchWithAuth(`${ip}/reactions/${messageId}`);
     if (!res.ok) throw new Error("Failed to fetch reactions");
     return { messageId, reactions: await res.json() };
-  }
+  },
 );
 
 // Add or update reaction
@@ -29,20 +28,22 @@ export const addOrUpdateReaction = createAsyncThunk(
 
     if (!res.ok) throw new Error("Failed to add or update reaction");
     return { messageId, reaction: await res.json() };
-  }
+  },
 );
-
 
 // Remove reaction
 export const removeReaction = createAsyncThunk(
   "reactions/removeReaction",
   async ({ messageId, userId }) => {
-    const res = await fetchWithAuth(`${ip}/reactions/${messageId}?userId=${userId}`, {
-      method: "DELETE",
-    });
+    const res = await fetchWithAuth(
+      `${ip}/reactions/${messageId}?userId=${userId}`,
+      {
+        method: "DELETE",
+      },
+    );
     if (!res.ok) throw new Error("Failed to remove reaction");
     return { messageId, userId };
-  }
+  },
 );
 
 const reactionsSlice = createSlice({
@@ -51,10 +52,37 @@ const reactionsSlice = createSlice({
     byMessageId: {}, // { messageId: [ { userId, emoji } ] }
     loading: false,
     error: null,
-     addReactionStatus: "idle",
-  removeReactionStatus: "idle",
+    addReactionStatus: "idle",
+    removeReactionStatus: "idle",
   },
-  reducers: {},
+  reducers: {
+    addOrUpdateReactionFromWS: (state, action) => {
+      const { messageId, userId, emoji } = action.payload;
+
+      const existing = state.byMessageId[messageId] || [];
+
+      const idx = existing.findIndex((r) => r.userId === userId);
+
+      if (idx !== -1) {
+        existing[idx].emoji = emoji;
+      } else {
+        existing.push({ userId, emoji });
+      }
+
+      state.byMessageId[messageId] = [...existing];
+    },
+
+    removeReactionFromWS: (state, action) => {
+      const { messageId, userId } = action.payload;
+
+      const existing = state.byMessageId[messageId] || [];
+
+      state.byMessageId[messageId] = existing.filter(
+        (r) => r.userId !== userId,
+      );
+    },
+  },
+
   extraReducers: (builder) => {
     builder
       .addCase(fetchReactions.pending, (state) => {
@@ -74,7 +102,7 @@ const reactionsSlice = createSlice({
         const existing = state.byMessageId[messageId] || [];
 
         // Update or insert
-        const idx = existing.findIndex(r => r.userId === reaction.userId);
+        const idx = existing.findIndex((r) => r.userId === reaction.userId);
         if (idx !== -1) {
           existing[idx] = reaction;
         } else {
@@ -86,9 +114,16 @@ const reactionsSlice = createSlice({
       .addCase(removeReaction.fulfilled, (state, action) => {
         const { messageId, userId } = action.payload;
         const existing = state.byMessageId[messageId] || [];
-        state.byMessageId[messageId] = existing.filter(r => r.userId !== userId);
+        state.byMessageId[messageId] = existing.filter(
+          (r) => r.userId !== userId,
+        );
       });
   },
 });
+
+export const {
+  addOrUpdateReactionFromWS,
+  removeReactionFromWS
+} = reactionsSlice.actions;
 
 export default reactionsSlice.reducer;

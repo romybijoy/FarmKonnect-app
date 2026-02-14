@@ -31,12 +31,12 @@ const AddGroupMembers = ({ groupId, existingMembers = [], onClose }) => {
 
     try {
       await dispatch(
-        addGroupMember({ groupId, userId: selectedUser })
+        addGroupMember({ groupId, userId: selectedUser }),
       ).unwrap();
 
       toast.success("Member added successfully!");
       setSelectedUser(null);
-      onClose(); // ✅ close modal
+      onClose(); //   close modal
     } catch (err) {
       toast.error("Failed to add member");
     }
@@ -45,14 +45,10 @@ const AddGroupMembers = ({ groupId, existingMembers = [], onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-        
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-lg">Add Group Member</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-black"
-          >
+          <button onClick={onClose} className="text-gray-500 hover:text-black">
             ✕
           </button>
         </div>
@@ -84,10 +80,7 @@ const AddGroupMembers = ({ groupId, existingMembers = [], onClose }) => {
 
         {/* Actions */}
         <div className="flex justify-end gap-2 mt-4">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border rounded"
-          >
+          <button onClick={onClose} className="px-4 py-2 border rounded">
             Cancel
           </button>
           <button
@@ -98,7 +91,6 @@ const AddGroupMembers = ({ groupId, existingMembers = [], onClose }) => {
             Add Member
           </button>
         </div>
-
       </div>
     </div>
   );

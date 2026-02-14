@@ -11,14 +11,16 @@ const ChatHeader = ({ selectedChat, onCall }) => {
   const dispatch = useDispatch();
   const presence = useSelector(makeSelectUserPresence(selectedChat?.id));
   const typingByEmail = useSelector((state) => state.typing.typingByEmail);
-  const isTyping = selectedChat?.email && typingByEmail[selectedChat.email];
+  const typingUser = typingByEmail?.[selectedChat?.id];
+  const isTyping = !!typingUser;
 
+  
   useEffect(() => {
     if (!selectedChat?.id) return;
     dispatch(fetchPresence(selectedChat?.id));
     const interval = setInterval(
       () => dispatch(fetchPresence(selectedChat?.id)),
-      10000
+      10000,
     );
     return () => clearInterval(interval);
   }, [dispatch, selectedChat?.id]);
@@ -27,7 +29,7 @@ const ChatHeader = ({ selectedChat, onCall }) => {
     if (!presence) return null;
 
     if (isTyping) {
-      return <span className="text-purple-500 animate-pulse">Typing...</span>;
+      return <span className="text-[#689F38] animate-pulse font-medium">typing...</span>;
     }
 
     if (presence.online) {
@@ -64,12 +66,6 @@ const ChatHeader = ({ selectedChat, onCall }) => {
               <span className="text-gray-400">Loading...</span>
             )}
           </span>
-
-          {typingByEmail?.[selectedChat?.id] && (
-            <p className="text-sm text-gray-500">
-              {typingByEmail?.[selectedChat?.id]} is typing...
-            </p>
-          )}
         </div>
       </div>
       <div className="flex gap-2">

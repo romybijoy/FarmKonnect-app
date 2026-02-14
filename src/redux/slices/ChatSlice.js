@@ -35,7 +35,7 @@ export const sendChatMessage = createAsyncThunk(
       console.error(error);
       return rejectWithValue(error);
     }
-  }
+  },
 );
 
 //read action
@@ -64,7 +64,7 @@ export const fetchMessages = createAsyncThunk(
     } catch (error) {
       return thunkAPI.rejectWithValue({ message: error.message });
     }
-  }
+  },
 );
 
 // group
@@ -89,7 +89,7 @@ export const createGroup = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message || "Network error");
     }
-  }
+  },
 );
 
 export const addGroupMember = createAsyncThunk(
@@ -111,7 +111,7 @@ export const addGroupMember = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message || "Network error");
     }
-  }
+  },
 );
 
 export const getGroupMembers = createAsyncThunk(
@@ -130,7 +130,7 @@ export const getGroupMembers = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message || "Network error");
     }
-  }
+  },
 );
 
 export const getAllGroups = createAsyncThunk(
@@ -149,7 +149,7 @@ export const getAllGroups = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message || "Network error");
     }
-  }
+  },
 );
 
 export const getMembers = createAsyncThunk(
@@ -174,7 +174,7 @@ export const getMembers = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 /**
@@ -189,7 +189,7 @@ export const getGroupById = createAsyncThunk(
       if (!res.ok) {
         const text = await res.text();
         throw new Error(
-          `Failed to fetch group ${groupId}: ${res.status} ${text}`
+          `Failed to fetch group ${groupId}: ${res.status} ${text}`,
         );
       }
       const data = await res.json();
@@ -197,7 +197,7 @@ export const getGroupById = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message || "Failed to fetch group");
     }
-  }
+  },
 );
 
 export const chatDetail = createSlice({
@@ -263,7 +263,7 @@ export const chatDetail = createSlice({
       }
 
       const existing = state.privateMessages[chatPartnerId].some(
-        (msg) => msg.id === message.id
+        (msg) => msg.id === message.id,
       );
       if (!existing) {
         state.privateMessages[chatPartnerId].push(message);
@@ -302,8 +302,8 @@ export const chatDetail = createSlice({
       const convId = isGroup
         ? groupId
         : senderId === currentUserId
-        ? receiverId
-        : senderId;
+          ? receiverId
+          : senderId;
 
       // Determine display name + avatar
       let name = "";
@@ -312,7 +312,7 @@ export const chatDetail = createSlice({
       if (isGroup) {
         const group = usersMap[groupId]; // if you store groups separately
         name = group?.name || "Group Chat";
-        avatar = group?.image || "group.png";
+        avatar = group?.image || "/profile.png";
       } else {
         const otherUserId = senderId === currentUserId ? receiverId : senderId;
         const user = usersMap[otherUserId];
@@ -328,8 +328,8 @@ export const chatDetail = createSlice({
       const unreadCount = existing
         ? existing.unreadCount + (isIncoming ? 1 : 0)
         : isIncoming
-        ? 1
-        : 0;
+          ? 1
+          : 0;
 
       // Determine preview last message text
       const previewText =
@@ -338,8 +338,8 @@ export const chatDetail = createSlice({
       // Build preview object
       const preview = {
         id: convId,
-        name,
-        avatar,
+        username: name,
+        profilePicture: avatar,
         lastMessage: previewText,
         lastMessageTime: timestamp,
         unreadCount,
@@ -353,7 +353,7 @@ export const chatDetail = createSlice({
       state.conversations = Object.values(state.conversationsMap).sort(
         (a, b) =>
           new Date(b.lastMessageTime).getTime() -
-          new Date(a.lastMessageTime).getTime()
+          new Date(a.lastMessageTime).getTime(),
       );
     },
 
@@ -366,7 +366,7 @@ export const chatDetail = createSlice({
       state.conversations = Object.values(state.conversationsMap).sort(
         (a, b) =>
           new Date(b.lastMessageTime).getTime() -
-          new Date(a.lastMessageTime).getTime()
+          new Date(a.lastMessageTime).getTime(),
       );
     },
     upsertMessage: (state, action) => {
@@ -376,6 +376,20 @@ export const chatDetail = createSlice({
       // GROUP
       if (message.groupId) {
         const old = state.groupMessages[message.groupId] || [];
+
+        const optimisticIndex = old.findIndex(
+          (m) =>
+            m.optimistic &&
+            m.senderId === message.senderId &&
+            m.content === message.content &&
+            m.type === message.type,
+        );
+
+        if (optimisticIndex !== -1) {
+          old[optimisticIndex] = message; // replace temp with real
+          state.groupMessages[message.groupId] = [...old];
+          return;
+        }
         const exists = old.some((m) => m.id === message.id);
 
         state.groupMessages[message.groupId] = exists
@@ -391,6 +405,20 @@ export const chatDetail = createSlice({
           : message.senderId;
 
       const old = state.privateMessages[chatId] || [];
+
+      const optimisticIndex = old.findIndex(
+        (m) =>
+          m.optimistic &&
+          m.senderId === message.senderId &&
+          m.content === message.content &&
+          m.type === message.type,
+      );
+
+      if (optimisticIndex !== -1) {
+        old[optimisticIndex] = message;
+        state.privateMessages[chatId] = [...old];
+        return;
+      }
       const exists = old.some((m) => m.id === message.id);
 
       state.privateMessages[chatId] = exists

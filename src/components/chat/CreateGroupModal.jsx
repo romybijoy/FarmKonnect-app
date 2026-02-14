@@ -11,13 +11,13 @@ const CreateGroupModal = ({
   setGroupName,
   selectedUsers,
   setSelectedUsers,
-  onCreate, // ✅ group creation handler from parent
+  onCreate, //   group creation handler from parent
 }) => {
   const handleToggleUser = (userId) => {
     setSelectedUsers((prev) =>
       prev.includes(userId)
         ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+        : [...prev, userId],
     );
   };
 
@@ -40,8 +40,8 @@ const CreateGroupModal = ({
     };
 
     console.log("groupData:", JSON.stringify(groupData, null, 2));
-    onCreate(groupData); // ✅ Send data to parent
-    onClose(); // ✅ Close modal
+    onCreate(groupData); //   Send data to parent
+    onClose(); //   Close modal
   };
 
   return (

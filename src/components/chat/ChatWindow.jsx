@@ -35,7 +35,7 @@ export default function ChatWindow({ selectedChat, chatType }) {
   const dispatch = useDispatch();
   const { startCall } = useWebRTC();
   const { privateMessages, groupMessages, loading, error } = useSelector(
-    (state) => state.chat
+    (state) => state.chat,
   );
   const messages =
     chatType === "private"
@@ -73,7 +73,7 @@ export default function ChatWindow({ selectedChat, chatType }) {
           chatId: selectedChat.id,
           chatType,
           ip: appConfig.ip,
-        })
+        }),
       );
     }
 
@@ -82,27 +82,27 @@ export default function ChatWindow({ selectedChat, chatType }) {
     }
   }, [selectedChat?.id, chatType, connected]);
 
- useEffect(() => {
-  if (!messages.length) return;
+  useEffect(() => {
+    if (!messages.length) return;
 
-  messages.forEach((m) => {
-    // skip optimistic messages
-    if (m.optimistic) return;
+    messages.forEach((m) => {
+      // skip optimistic messages
+      if (m.optimistic) return;
 
-    // already fetched once
-    if (fetchedReactionsRef.current.has(m.id)) return;
+      // already fetched once
+      if (fetchedReactionsRef.current.has(m.id)) return;
 
-    // reactions already in store
-    if (reactionsMap[m.id]) {
+      // reactions already in store
+      if (reactionsMap[m.id]) {
+        fetchedReactionsRef.current.add(m.id);
+        return;
+      }
+
+      //   fetch only ONCE
       fetchedReactionsRef.current.add(m.id);
-      return;
-    }
-
-    // ✅ fetch only ONCE
-    fetchedReactionsRef.current.add(m.id);
-    dispatch(fetchReactions(m.id));
-  });
-}, [messages.length]);
+      dispatch(fetchReactions(m.id));
+    });
+  }, [messages.length]);
 
 
 
@@ -132,7 +132,7 @@ export default function ChatWindow({ selectedChat, chatType }) {
     if (payload.type === "audio") {
       const audioUrl = await uploadToFirebase(
         `voice_notes/${Date.now()}.webm`,
-        payload.audioBlob
+        payload.audioBlob,
       );
 
       const optimisticMessage = {
@@ -146,10 +146,10 @@ export default function ChatWindow({ selectedChat, chatType }) {
         optimistic: true,
       };
 
-      // ✅ SHOW IMMEDIATELY
+      //   SHOW IMMEDIATELY
       dispatch(upsertMessage(optimisticMessage));
 
-      // ✅ SEND TO BACKEND
+      //   SEND TO BACKEND
       sendMessageWS(destination, {
         senderId: userData.id,
         receiverId: chatType === "private" ? selectedChat.id : null,
@@ -174,17 +174,17 @@ export default function ChatWindow({ selectedChat, chatType }) {
       optimistic: true,
     };
 
-    // ✅ SHOW IMMEDIATELY
+    //   SHOW IMMEDIATELY
     dispatch(upsertMessage(optimisticMessage));
 
-    // ✅ SEND TO BACKEND
+    //   SEND TO BACKEND
     sendMessageWS(destination, {
-    senderId: userData.id,
-    receiverId: chatType === "private" ? selectedChat.id : null,
-    groupId: chatType === "group" ? selectedChat.id : null,
-    type: "text",
-    content: payload.content
-  });
+      senderId: userData.id,
+      receiverId: chatType === "private" ? selectedChat.id : null,
+      groupId: chatType === "group" ? selectedChat.id : null,
+      type: "text",
+      content: payload.content,
+    });
   };
 
   const uploadToFirebase = async (path, file) => {
@@ -195,27 +195,41 @@ export default function ChatWindow({ selectedChat, chatType }) {
   };
 
   const handleSendFile = async () => {
-  if (!connected) return;
+    if (!connected) return;
 
-  const tempId = `temp-${Date.now()}`;
+    const tempId = `temp-${Date.now()}`;
 
-  const fileType = selectedFile.type.startsWith("image")
-    ? "image"
-    : selectedFile.type.startsWith("video")
-    ? "video"
-    : selectedFile.type === "application/pdf"
-    ? "pdf"
-    : "excel";
+    const fileType = selectedFile.type.startsWith("image")
+      ? "image"
+      : selectedFile.type.startsWith("video")
+        ? "video"
+        : selectedFile.type === "application/pdf"
+          ? "pdf"
+          : "excel";
 
-  const url = await uploadToFirebase(
-    `chat_uploads/${Date.now()}_${selectedFile.name}`,
-    selectedFile
-  );
+    const url = await uploadToFirebase(
+      `chat_uploads/${Date.now()}_${selectedFile.name}`,
+      selectedFile,
+    );
 
-  // optimistic UI
-  dispatch(
-    upsertMessage({
-      id: tempId,
+    // optimistic UI
+    dispatch(
+      upsertMessage({
+        id: tempId,
+        senderId: userData.id,
+        receiverId: chatType === "private" ? selectedChat.id : null,
+        groupId: chatType === "group" ? selectedChat.id : null,
+        type: fileType,
+        fileUrl: url,
+        content: caption,
+        fileName: selectedFile.name,
+        timestamp: new Date().toISOString(),
+        optimistic: true,
+      }),
+    );
+
+    // backend payload
+    sendMessageWS("/app/chat.sendMessage", {
       senderId: userData.id,
       receiverId: chatType === "private" ? selectedChat.id : null,
       groupId: chatType === "group" ? selectedChat.id : null,
@@ -223,26 +237,12 @@ export default function ChatWindow({ selectedChat, chatType }) {
       fileUrl: url,
       content: caption,
       fileName: selectedFile.name,
-      timestamp: new Date().toISOString(),
-      optimistic: true
-    })
-  );
+    });
 
-  // backend payload
-  sendMessageWS("/app/chat.sendMessage", {
-    senderId: userData.id,
-    receiverId: chatType === "private" ? selectedChat.id : null,
-    groupId: chatType === "group" ? selectedChat.id : null,
-    type: fileType,
-    fileUrl: url,
-    content: caption,
-    fileName: selectedFile.name
-  });
-
-  setShowPreview(false);
-  setSelectedFile(null);
-  setCaption("");
-};
+    setShowPreview(false);
+    setSelectedFile(null);
+    setCaption("");
+  };
 
   const handleClosePreview = () => {
     setShowPreview(false);
@@ -288,7 +288,7 @@ export default function ChatWindow({ selectedChat, chatType }) {
 
   const visibleMessages = messages.filter(
     (m) =>
-      !m.deletedBy || !m.deletedBy.split(",").includes(userData.id.toString())
+      !m.deletedBy || !m.deletedBy.split(",").includes(userData.id.toString()),
   );
 
   return (
@@ -327,7 +327,7 @@ export default function ChatWindow({ selectedChat, chatType }) {
             index === 0 ||
             !dayjs(message.timestamp).isSame(
               visibleMessages[index - 1].timestamp,
-              "day"
+              "day",
             );
 
           return (
@@ -364,7 +364,6 @@ export default function ChatWindow({ selectedChat, chatType }) {
           onSend={onSend}
           selectedChat={selectedChat?.id}
           chatType={chatType}
-          disabled={!connected}
           onFileSelect={(file) => {
             setSelectedFile(file);
             setShowPreview(true);

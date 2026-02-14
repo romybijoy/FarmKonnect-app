@@ -7,13 +7,14 @@ const TypingSlice = createSlice({
   },
   reducers: {
     setTypingStatus: (state, action) => {
-      const { email, isTyping, groupId, receiverId } = action.payload;
-      const chatId = groupId || receiverId;
+      const { senderId, groupId, isTyping, email } = action.payload;
+
+      const chatId = groupId || senderId;
 
       if (!chatId) return;
 
       if (isTyping) {
-        state.typingByEmail[chatId] = email;
+        state.typingByEmail[chatId] = email; // store email or username
       } else {
         delete state.typingByEmail[chatId];
       }

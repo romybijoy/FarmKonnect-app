@@ -12,7 +12,6 @@ import { Firebase } from "../../firebase/config";
 
 export default function MessageInput({
   onSend,
-  disabled,
   chatType,
   selectedChat,
   onFileSelect, // 📎 lifted to ChatWindow
@@ -20,7 +19,7 @@ export default function MessageInput({
   const [text, setText] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // 🎤 Audio states
+  // Audio states
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -28,6 +27,7 @@ export default function MessageInput({
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioPreviewUrl, setAudioPreviewUrl] = useState(null);
   const recordingTimerRef = useRef(null);
+  const inputRef = useRef(null);
 
   const fileInputRef = useRef(null);
   const emojiRef = useRef(null);
@@ -72,6 +72,14 @@ export default function MessageInput({
     };
   }, []);
 
+  useEffect(() => {
+    if (inputRef.current) {
+      setTimeout(() => {
+        inputRef.current.focus();
+      }, 0);
+    }
+  }, [selectedChat]);
+
   // ---------------- Firebase upload helper ----------------
   const uploadToFirebase = async (path, file) => {
     const storageRef = ref(Firebase.storage(), path);
@@ -87,6 +95,14 @@ export default function MessageInput({
       content: text,
       type: "text",
     });
+
+    // stop typing immediately
+    const payload =
+      chatType === "group"
+        ? { email: userData.email, isTyping: false, groupId: selectedChat }
+        : { email: userData.email, isTyping: false, receiverId: selectedChat };
+
+    sendTypingStatus(payload);
 
     setText("");
   };
@@ -131,7 +147,7 @@ export default function MessageInput({
 
   const formatTime = (sec) =>
     `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(
-      sec % 60
+      sec % 60,
     ).padStart(2, "0")}`;
 
   // ---------------- Send audio ----------------
@@ -152,17 +168,22 @@ export default function MessageInput({
   const handleTyping = (value) => {
     setText(value);
 
+    const isTyping = value.trim().length > 0;
+
     const payload =
       chatType === "group"
-        ? { email: userData.email, isTyping: true, groupId: selectedChat }
-        : { email: userData.email, isTyping: true, receiverId: selectedChat };
+        ? { email: userData.email, isTyping, groupId: selectedChat }
+        : { email: userData.email, isTyping, receiverId: selectedChat };
 
     sendTypingStatus(payload);
 
     clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      sendTypingStatus({ ...payload, isTyping: false });
-    }, 1500);
+
+    if (isTyping) {
+      typingTimeoutRef.current = setTimeout(() => {
+        sendTypingStatus({ ...payload, isTyping: false });
+      }, 1500);
+    }
   };
 
   // ---------------- Close emoji picker ----------------
@@ -229,12 +250,12 @@ export default function MessageInput({
           </div>
         )}
 
-        {/* ✍ Normal Text Input */}
+        {/* Normal Text Input */}
         {!isRecording && !audioPreviewUrl && (
           <input
+            ref={inputRef}
             type="text"
             value={text}
-            disabled={disabled}
             onChange={(e) => handleTyping(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendText()}
             placeholder="Type a message"

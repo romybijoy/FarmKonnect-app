@@ -16,6 +16,10 @@ import {
 } from "../redux/slices/ChatSlice";
 import { useSignal } from "./SignalContext";
 import { setTypingStatus } from "../redux/slices/TypingSlice";
+import {
+  addOrUpdateReactionFromWS,
+  removeReactionFromWS,
+} from "../redux/slices/ReactionsSlice";
 
 // Create Context
 const WebSocketContext = createContext();
@@ -97,17 +101,100 @@ export const WebSocketProvider = ({ children }) => {
 
           // PERSONAL QUEUE (messages sent to this user — delete/edit/update)
           const personalMsgSub = stompClient.current.subscribe(
-            "/user/queue/messages",
+            `/topic/private/${userId}`,
             (msg) => {
-              const message = JSON.parse(msg.body);
-              console.log("[WebSocket] Personal queue update:", message);
+              const data = JSON.parse(msg.body);
 
-              // UPSERT so UI updates immediately
-              store.dispatch(upsertMessage(message));
-            }
+              console.log("PRIVATE EVENT RECEIVED:", data);
+
+              // TYPING
+              if (data.eventType === "TYPING") {
+                store.dispatch(setTypingStatus(data));
+                return;
+              }
+
+              if (data.eventType === "REACTION") {
+                if (data.type === "ADD") {
+                  store.dispatch(addOrUpdateReactionFromWS(data));
+                } else if (data.type === "REMOVE") {
+                  store.dispatch(removeReactionFromWS(data));
+                }
+              } else {
+                store.dispatch(upsertMessage(data));
+              }
+
+              const stateNow = store.getState();
+              const profiles = stateNow.app?.profiles || {};
+
+              const usersMap = Object.values(profiles).reduce((m, u) => {
+                m[String(u.id)] = u;
+                return m;
+              }, {});
+
+              store.dispatch(
+                upsertConversationFromMessage({
+                  message: data,
+                  currentUserId: userId,
+                  usersMap,
+                }),
+              );
+            },
           );
 
           subscriptions.current.set(`user-messages-${userId}`, personalMsgSub);
+
+          // GLOBAL GROUP SUBSCRIPTION FOR FLOATING DOCK
+          const stateNow = store.getState();
+          const myGroups = Object.values(stateNow.groups?.byId || {});
+
+          myGroups.forEach((group) => {
+            const groupSub = stompClient.current.subscribe(
+              `/topic/group/${group.id}`,
+              (msg) => {
+                const data = JSON.parse(msg.body);
+
+                console.log("[GLOBAL GROUP EVENT RECEIVED]:", data);
+
+                // TYPING
+                if (data.eventType === "TYPING") {
+                  store.dispatch(setTypingStatus(data));
+                  return;
+                }
+
+                // REACTION
+                if (data.eventType === "REACTION") {
+                  if (data.type === "ADD") {
+                    store.dispatch(addOrUpdateReactionFromWS(data));
+                  } else {
+                    store.dispatch(removeReactionFromWS(data));
+                  }
+                  return;
+                }
+
+                // NORMAL MESSAGE
+                store.dispatch(upsertMessage(data));
+
+                //IMPORTANT → update conversations for FloatingDock
+                const state2 = store.getState();
+                const profiles = state2.app?.profiles || {};
+
+                const usersMap = Object.values(profiles).reduce((m, u) => {
+                  m[String(u.id)] = u;
+                  return m;
+                }, {});
+
+                store.dispatch(
+                  upsertConversationFromMessage({
+                    message: data,
+                    currentUserId: userId,
+                    usersMap,
+                  }),
+                );
+              },
+            );
+
+            subscriptions.current.set(`group-${group.id}`, groupSub);
+          });
 
           // DELETE (delete-for-me & delete-for-everyone personal updates)
           const deleteSub = stompClient.current.subscribe(
@@ -116,9 +203,9 @@ export const WebSocketProvider = ({ children }) => {
               const message = JSON.parse(msg.body);
               console.log("[WebSocket] Delete update received:", message);
 
-              // 🔥 UPSERT so UI updates immediately
+              // UPSERT so UI updates immediately
               store.dispatch(upsertMessage(message));
-            }
+            },
           );
 
           subscriptions.current.set(`delete-${userId}`, deleteSub);
@@ -151,7 +238,7 @@ export const WebSocketProvider = ({ children }) => {
               } else {
                 console.warn("[WebSocket] No signal handler found");
               }
-            }
+            },
           );
           subscriptions.current.set(`call-${userId}`, callSub);
 
@@ -166,7 +253,7 @@ export const WebSocketProvider = ({ children }) => {
                 type: "notification/addNotification",
                 payload: notification,
               });
-            }
+            },
           );
           subscriptions.current.set(`notification-${userId}`, notificationSub);
 
@@ -176,16 +263,16 @@ export const WebSocketProvider = ({ children }) => {
             (msg) => {
               const typingPayload = JSON.parse(msg.body);
               store.dispatch(setTypingStatus(typingPayload));
-            }
+            },
           );
           subscriptions.current.set(
             `typing-private-${userId}`,
-            typingPrivateSub
+            typingPrivateSub,
           );
 
           console.log(
             "[WebSocket] Flushing pending queue:",
-            pendingQueue.current.length
+            pendingQueue.current.length,
           );
 
           pendingQueue.current.forEach(({ destination, message }) => {
@@ -200,7 +287,7 @@ export const WebSocketProvider = ({ children }) => {
           console.error("[WebSocket] connection error:", error);
           setConnected(false);
           reject(error);
-        }
+        },
       );
     });
   };
@@ -263,12 +350,31 @@ export const WebSocketProvider = ({ children }) => {
       `/topic/group/${groupId}`,
       async (msg) => {
         try {
-          const message = JSON.parse(msg.body);
-          console.log("[WebSocket] Group message received:", message);
+          const data = JSON.parse(msg.body);
 
-          store.dispatch(upsertMessage(message));
+          console.log("[WebSocket] Group event received:", data);
 
-          // ✅ 2) Ensure group metadata exists
+          // TYPING
+          if (data.eventType === "TYPING") {
+            store.dispatch(setTypingStatus(data));
+            return;
+          }
+
+          // REACTION
+          if (data.eventType === "REACTION") {
+            if (data.type === "ADD") {
+              store.dispatch(addOrUpdateReactionFromWS(data));
+            } else if (data.type === "REMOVE") {
+              store.dispatch(removeReactionFromWS(data));
+            }
+            return;
+          }
+
+          //   NORMAL MESSAGE
+          store.dispatch(upsertMessage(data));
+
+          // ---- existing metadata logic continues ----
+
           const stateNow = store.getState();
           const groupsById = stateNow.groups?.byId || {};
           let groupMeta = groupsById[groupId];
@@ -286,17 +392,15 @@ export const WebSocketProvider = ({ children }) => {
             }
           }
 
-          // ✅ 3) Ensure sender profile exists
           const profiles = store.getState().app?.profiles || {};
-          if (message.senderId && !profiles[message.senderId]) {
+          if (data.senderId && !profiles[data.senderId]) {
             try {
-              await store.dispatch(fetchUserById(message.senderId)).unwrap();
+              await store.dispatch(fetchUserById(data.senderId)).unwrap();
             } catch (err) {
               console.warn("[WS] failed to fetch sender profile:", err);
             }
           }
 
-          // ✅ 4) Update conversation preview (sidebar)
           const updatedProfiles = store.getState().app?.profiles || {};
           const usersMap = Object.values(updatedProfiles).reduce((m, u) => {
             m[String(u.id)] = u;
@@ -305,16 +409,16 @@ export const WebSocketProvider = ({ children }) => {
 
           store.dispatch(
             upsertConversationFromMessage({
-              message,
+              message: data,
               currentUserId: userId,
               usersMap,
               groupMeta,
-            })
+            }),
           );
         } catch (err) {
           console.error("[WebSocket] group handler error:", err);
         }
-      }
+      },
     );
 
     subscriptions.current.set(`group-${groupId}`, groupSub);
@@ -326,7 +430,7 @@ export const WebSocketProvider = ({ children }) => {
         const typingPayload = JSON.parse(msg.body);
         store.dispatch(setTypingStatus(typingPayload));
         console.log("[WebSocket] Group typing received:", typingPayload);
-      }
+      },
     );
     subscriptions.current.set(`typing-group-${groupId}`, typingGroupSub);
   };
