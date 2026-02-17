@@ -6,6 +6,8 @@ import ReactionPopup from "./ReactionPopup";
 import EmojiPickerWrapper from "./EmojiPickerWrapper";
 import { MdBlock } from "react-icons/md";
 
+import { IoCheckmark, IoCheckmarkDone } from "react-icons/io5";
+
 export default function MessageBubble({
   messageId,
   message,
@@ -25,19 +27,19 @@ export default function MessageBubble({
   const buttonRef = useRef(null);
 
   const bubbleStyles = isSentByMe
-    ? "bg-[#7CB342] text-white rounded-tr-none"
+    ? "bg-[#5E8E33] text-white rounded-tr-none"
     : "bg-white text-gray-900 rounded-tl-none";
 
   const handleEmojiClick = (emojiData) => {
     const selectedEmoji = emojiData.emoji;
     const alreadyReacted = reactions.some(
-      (r) => r.emoji === selectedEmoji && r.userId === currentUserId
+      (r) => r.emoji === selectedEmoji && r.userId === currentUserId,
     );
     onReact(message.id, alreadyReacted ? null : selectedEmoji);
     setShowPicker(false);
   };
 
-  // 👇 Close emoji picker on outside click
+  // Close emoji picker on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -108,7 +110,7 @@ export default function MessageBubble({
           italic text-sm opacity-80
           ${
             isSentByMe
-              ? "bg-[#7CB342] text-green-100"
+              ? "bg-[#5E8E33] text-green-100"
               : "bg-white text-gray-500"
           }`}
         >
@@ -127,11 +129,56 @@ export default function MessageBubble({
     );
   }
 
+  const renderTicks = () => {
+    // ======================
+    // PRIVATE CHAT
+    // ======================
+    if (chatType === "private") {
+      if (message.status === "SENT") {
+        return <IoCheckmark size={14} className="text-gray-300" />;
+      }
+
+      if (message.status === "DELIVERED") {
+        return <IoCheckmarkDone size={14} className="text-gray-300" />;
+      }
+
+      if (message.status === "READ") {
+        return <IoCheckmarkDone size={14} color="#53BDEB" />;
+      }
+    }
+
+    // ======================
+    // GROUP CHAT
+    // ======================
+    if (chatType === "group") {
+      const totalMembers = message.totalMembers || 0;
+      const deliveredCount = message.deliveredCount || 0;
+      const readCount = message.readCount || 0;
+
+      const totalRecipients = totalMembers - 1;
+
+      // All READ
+      if (readCount === totalRecipients && totalRecipients > 0) {
+        return <IoCheckmarkDone size={14} color="#53BDEB" />;
+      }
+
+      // All DELIVERED
+      if (deliveredCount > 0 && totalRecipients > 0) {
+        return <IoCheckmarkDone size={14} className="text-gray-300" />;
+      }
+
+      // ✓ Sent
+      return <IoCheckmark size={14} className="text-gray-300" />;
+    }
+
+    return null;
+  };
+
   return (
     <div
       className={`flex ${
         isSentByMe ? "justify-end" : "justify-start"
-      } mt-3 px-4 relative`}
+      } mt-4 px-4 relative`}
     >
       {!isSentByMe && senderProfile && chatType === "group" && (
         <img
@@ -142,7 +189,7 @@ export default function MessageBubble({
       )}
 
       <div
-        className={`relative max-w-[75%] px-4 py-[1%] mt-[1%] ml-1 rounded-xl shadow-sm break-words ${bubbleStyles}`}
+        className={`relative max-w-[75%] px-3 py-2 ml-1 rounded-xl shadow-sm break-words ${bubbleStyles}`}
         onContextMenu={(e) => {
           e.preventDefault();
           setShowDeleteMenu(true);
@@ -150,7 +197,7 @@ export default function MessageBubble({
       >
         {/* Text */}
         {message.type === "text" && (
-          <p className="text-sm leading-snug whitespace-pre-wrap pr-2">
+          <p className="text-sm leading-tight whitespace-pre-wrap mb-[5px]">
             {message.content}
           </p>
         )}
@@ -242,13 +289,21 @@ export default function MessageBubble({
         )}
 
         {/* Timestamp */}
-        <span
-          className={`absolute bottom-1 right-2 text-[9px] ${
-            isSentByMe ? "text-green-100" : "text-gray-400"
-          }`}
-        >
-          {dayjs(message.timestamp).format("h:mm A")}
-        </span>
+        <div className="flex justify-end items-end gap-[2px] mt-[2px]">
+          <span
+            className={`text-[10px] leading-none ${
+              isSentByMe ? "text-green-100" : "text-gray-400"
+            }`}
+          >
+            {dayjs(message.timestamp).format("h:mm A")}
+          </span>
+
+          {isSentByMe && (
+            <span className="text-[12px] flex items-center">
+              {renderTicks()}
+            </span>
+          )}
+        </div>
 
         {/* Reactions */}
         {Object.entries(groupedReactions).length > 0 && (
@@ -277,7 +332,7 @@ export default function MessageBubble({
             buttonRef={buttonRef}
             onEmojiSelect={(emoji) => {
               const alreadyReacted = reactions.some(
-                (r) => r.emoji === emoji && r.userId === currentUserId
+                (r) => r.emoji === emoji && r.userId === currentUserId,
               );
               onReact(message.id, alreadyReacted ? null : emoji);
             }}

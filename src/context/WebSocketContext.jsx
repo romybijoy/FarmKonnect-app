@@ -13,6 +13,7 @@ import {
   getGroupById,
   upsertMessage,
   setCurrentUserId,
+  updateMessageStatus,
 } from "../redux/slices/ChatSlice";
 import { useSignal } from "./SignalContext";
 import { setTypingStatus } from "../redux/slices/TypingSlice";
@@ -99,7 +100,7 @@ export const WebSocketProvider = ({ children }) => {
           console.log("[WebSocket] connected");
           setConnected(true);
 
-          // PERSONAL QUEUE (messages sent to this user — delete/edit/update)
+          // PERSONAL QUEUE
           const personalMsgSub = stompClient.current.subscribe(
             `/topic/private/${userId}`,
             (msg) => {
@@ -113,16 +114,26 @@ export const WebSocketProvider = ({ children }) => {
                 return;
               }
 
+              // REACTION
               if (data.eventType === "REACTION") {
                 if (data.type === "ADD") {
                   store.dispatch(addOrUpdateReactionFromWS(data));
                 } else if (data.type === "REMOVE") {
                   store.dispatch(removeReactionFromWS(data));
                 }
-              } else {
-                store.dispatch(upsertMessage(data));
+                return;
               }
 
+              // STATUS UPDATE
+              if (data.eventType === "STATUS_UPDATE") {
+                store.dispatch(updateMessageStatus(data));
+                return;
+              }
+
+              // NORMAL MESSAGE
+              store.dispatch(upsertMessage(data));
+
+              // Update conversation preview for Floating Dock
               const stateNow = store.getState();
               const profiles = stateNow.app?.profiles || {};
 
@@ -168,6 +179,22 @@ export const WebSocketProvider = ({ children }) => {
                   } else {
                     store.dispatch(removeReactionFromWS(data));
                   }
+                  return;
+                }
+
+                if (data.eventType === "STATUS_UPDATE") {
+                  const stateNow = store.getState();
+
+                  const messageExists = Object.values(
+                    stateNow.chat.groupMessages,
+                  )
+                    .flat()
+                    .some((msg) => msg.id === data.messageId);
+
+                  if (messageExists) {
+                    store.dispatch(updateMessageStatus(data));
+                  }
+
                   return;
                 }
 
@@ -367,6 +394,21 @@ export const WebSocketProvider = ({ children }) => {
             } else if (data.type === "REMOVE") {
               store.dispatch(removeReactionFromWS(data));
             }
+            return;
+          }
+
+          // STATUS UPDATE
+          if (data.eventType === "STATUS_UPDATE") {
+            const stateNow = store.getState();
+
+            const messageExists = Object.values(stateNow.chat.groupMessages)
+              .flat()
+              .some((msg) => msg.id === data.messageId);
+
+            if (messageExists) {
+              store.dispatch(updateMessageStatus(data));
+            }
+
             return;
           }
 

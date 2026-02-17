@@ -104,8 +104,6 @@ export default function ChatWindow({ selectedChat, chatType }) {
     });
   }, [messages.length]);
 
-
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -118,6 +116,49 @@ export default function ChatWindow({ selectedChat, chatType }) {
     }
     prevLenRef.current = messages.length;
   }, [messages.length]);
+
+  useEffect(() => {
+    if (!connected || !selectedChat || !messages?.length) return;
+
+    if (chatType === "private") {
+      messages.forEach((msg) => {
+        if (msg.senderId === userData.id) return;
+
+        if (msg.status !== "READ") {
+          sendMessageWS("/app/chat.private.delivered", {
+            senderId: msg.senderId,
+          });
+
+          sendMessageWS("/app/chat.private.markAsRead", {
+            senderId: msg.senderId,
+          });
+        }
+      });
+    }
+
+    if (chatType === "group") {
+      messages.forEach((msg) => {
+        // Skip my own messages
+        if (msg.senderId === userData.id) return;
+
+        const alreadyDelivered = msg.deliveredTo?.includes(userData.id);
+        const alreadyRead = msg.readBy?.includes(userData.id);
+
+        // Only send if needed
+        if (!alreadyDelivered) {
+          sendMessageWS("/app/chat.group.delivered", {
+            messageId: msg.id,
+          });
+        }
+
+        if (!alreadyRead) {
+          sendMessageWS("/app/chat.group.read", {
+            messageId: msg.id,
+          });
+        }
+      });
+    }
+  }, [messages, chatType, selectedChat?.id, connected]);
 
   const onSend = async (payload) => {
     if (!connected) {

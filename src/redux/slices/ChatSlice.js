@@ -434,12 +434,48 @@ export const chatDetail = createSlice({
       const index = list.findIndex((m) => m.id === msg.id);
 
       if (index !== -1) {
-        list[index] = msg; // 🔥 delete/edit
+        list[index] = msg; // delete/edit
       } else {
-        list.push(msg); // 🔥 new
+        list.push(msg); // new
       }
 
       state.groupMessages[groupId] = list;
+    },
+
+    updateMessageStatus: (state, action) => {
+      const { messageId, status, deliveredCount, readCount, totalMembers } =
+        action.payload;
+
+      console.log("Updating message status:", action.payload);
+
+      let found = false;
+
+      // PRIVATE
+      Object.values(state.privateMessages).forEach((chat) =>
+        chat.forEach((msg) => {
+          if (msg.id === messageId) {
+            msg.status = status;
+          }
+        }),
+      );
+
+      // GROUP
+      Object.values(state.groupMessages).forEach((chat) =>
+        chat.forEach((msg) => {
+          if (msg.id === messageId) {
+            msg.status = status;
+
+            if (deliveredCount !== undefined)
+              msg.deliveredCount = deliveredCount;
+
+            if (readCount !== undefined) msg.readCount = readCount;
+
+            if (totalMembers !== undefined) msg.totalMembers = totalMembers;
+            
+            found = true;
+          }
+        }),
+      );
     },
   },
 
@@ -594,6 +630,7 @@ export const {
   upsertMessage,
   upsertGroupMessage,
   setCurrentUserId,
+  updateMessageStatus,
 } = chatDetail.actions;
 
 export const selectGroupById = (state, id) => state.groups?.byId?.[id] || null;
