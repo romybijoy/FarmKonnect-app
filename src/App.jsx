@@ -1,5 +1,7 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchNotifications } from "./redux/slices/NotificationSlice";
 import AppRoutes from "./AppRoutes";
 import { SignalProvider } from "./context/SignalContext";
 import { WebSocketProvider } from "./context/WebSocketContext";
@@ -7,6 +9,16 @@ import { WebRTCProvider } from "./context/WebRTCContext";
 import GlobalCallListener from "./components/call/GlobalCallListener";
 
 function App() {
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.app.currentUser);
+
+  console.log(user);
+  useEffect(() => {
+    if (user?.id) {
+      dispatch(fetchNotifications({ id: user.id }));
+    }
+  }, [dispatch, user]);
+
   return (
     <SignalProvider>
       <WebSocketProvider>

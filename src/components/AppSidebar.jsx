@@ -10,8 +10,9 @@ import {
 import { FaSearch, FaBell, FaUsers, FaPlusSquare } from "react-icons/fa";
 import { logout } from "../redux/slices/AuthSlice";
 import { UserAuth } from "../context/AuthContext";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { ConfirmModal } from "../components/index";
+import { selectUnreadCount } from "../redux/slices/NotificationSlice";
 
 function Sidebar() {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -20,6 +21,7 @@ function Sidebar() {
   const { user, logOut } = UserAuth();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const unreadCount = useSelector(selectUnreadCount);
 
   const toggleDropdown = () => setShowDropdown(!showDropdown);
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -146,7 +148,15 @@ function Sidebar() {
                 className={navItemClasses}
                 onClick={handleNavClick}
               >
-                <FaBell className="text-lg" />
+                <div className="relative flex items-center">
+                  <FaBell className="text-lg" />
+
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-[2px] min-w-[18px] text-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </div>
                 Notifications
               </NavLink>
               <NavLink

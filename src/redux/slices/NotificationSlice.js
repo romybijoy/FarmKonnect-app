@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "../../service/FetchService";
 import { appConfig } from "../../config";
 
@@ -106,5 +106,11 @@ const notificationSlice = createSlice({
       });
   },
 });
+
+
+export const selectUnreadCount = createSelector(
+  (state) => state.notifications.notifications,
+  (notifications) => notifications.filter((n) => !n.read).length
+);
 
 export default notificationSlice.reducer;
