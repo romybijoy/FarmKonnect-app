@@ -89,7 +89,6 @@ function Post({ post }) {
   };
 
   const handleSave = () => {
-    console.log("first");
     dispatch(toggleSavePost({ postId: post.id, userId: userId }));
   };
 
@@ -487,6 +486,31 @@ function Post({ post }) {
         </div>
       </div>
 
+      {/* ---------- AI Moderation Status ---------- */}
+      {post.status === "PENDING" && isOwner && (
+        <div className="mt-3 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
+          <div className="flex items-center gap-2 font-semibold">
+            <span className="animate-spin">⏳</span>
+            Your post is under AI review
+          </div>
+          <div className="text-xs mt-1 opacity-80">
+            This usually takes a few seconds. You’ll be notified once moderation
+            is complete.
+          </div>
+        </div>
+      )}
+
+      {post.status === "REJECTED" && isOwner && (
+        <div className="mt-3 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="font-semibold mb-1">
+            ❌ Your post was rejected by AI moderation
+          </div>
+          <div className="text-xs opacity-90">
+            Reason: {post.moderationReason || "Content not agriculture related"}
+          </div>
+        </div>
+      )}
+
       {/* ---------- Content ---------- */}
       <div className="mt-3 text-sm text-gray-700">
         {expanded ? content : previewText}
@@ -500,7 +524,42 @@ function Post({ post }) {
         )}
       </div>
       {/* ---------------- Images ---------------- */}
-      {images.length > 0 && <PostImagesGrid images={images} />}
+
+      {images.length > 0 && (
+        <div className="relative rounded-xl overflow-hidden">
+          {/* ---------- Status Badge ---------- */}
+          {post.status === "REJECTED" && isOwner && (
+            <div
+              className="absolute top-5 right-3 bg-red-100 text-red-600 border border-red-200
+        text-xs px-2 py-1 rounded-full shadow-md z-10"
+            >
+              Rejected
+            </div>
+          )}
+
+          {post.status === "PENDING" && isOwner && (
+            <div
+              className="absolute top-5 right-3 bg-yellow-100 text-yellow-700 border border-yellow-200
+        text-xs px-2 py-1 rounded-full shadow-md z-10"
+            >
+              Under Review
+            </div>
+          )}
+
+          {/* ---------- Image Styling ---------- */}
+          <div
+            className={
+              post.status === "REJECTED" && isOwner
+                ? "grayscale opacity-80 transition-all duration-300"
+                : post.status === "PENDING" && isOwner
+                  ? "opacity-70 transition-all duration-300"
+                  : "transition-all duration-300"
+            }
+          >
+            <PostImagesGrid images={images} />
+          </div>
+        </div>
+      )}
 
       {/* ---------- Stats ---------- */}
       <div className="flex justify-between text-xs text-gray-500 mt-3">
@@ -516,10 +575,16 @@ function Post({ post }) {
       {/* ---------- Actions ---------- */}
       <div className="flex justify-between text-sm font-medium">
         <button
+          disabled={post.status !== "ACTIVE"}
           onClick={() =>
             dispatch(likePost({ postId: post.id, userId: userId }))
           }
-          className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
+          className={`flex items-center gap-2 p-2 rounded transition
+    ${
+      post.status !== "ACTIVE"
+        ? "opacity-50 cursor-not-allowed"
+        : "hover:bg-gray-100"
+    }`}
         >
           <i
             className={`bi ${
@@ -532,24 +597,42 @@ function Post({ post }) {
         </button>
 
         <button
+          disabled={post.status !== "ACTIVE"}
           onClick={() => setShowComments((p) => !p)}
-          className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
+          className={`flex items-center gap-2 p-2 rounded transition
+    ${
+      post.status !== "ACTIVE"
+        ? "opacity-50 cursor-not-allowed"
+        : "hover:bg-gray-100"
+    }`}
         >
           <i className="bi bi-chat-left-text" />
           Comment
         </button>
 
         <button
+          disabled={post.status !== "ACTIVE"}
           onClick={handleSave}
-          className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
+          className={`flex items-center gap-2 p-2 rounded transition
+    ${
+      post.status !== "ACTIVE"
+        ? "opacity-50 cursor-not-allowed"
+        : "hover:bg-gray-100"
+    }`}
         >
           <i className={`bi ${isSaved ? "bi-bookmark-fill" : "bi-bookmark"}`} />
           Save
         </button>
 
         <button
+          disabled={post.status !== "ACTIVE"}
           onClick={handleRepost}
-          className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded"
+          className={`flex items-center gap-2 p-2 rounded transition
+    ${
+      post.status !== "ACTIVE"
+        ? "opacity-50 cursor-not-allowed"
+        : "hover:bg-gray-100"
+    }`}
         >
           <FaShare />
           Share

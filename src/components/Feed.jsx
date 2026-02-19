@@ -10,14 +10,14 @@ import SkeletonFeed from "./Skeleton/SkeletonFeed";
 function Feed() {
   const [activeUser, setActiveUser] = React.useState(null);
   const dispatch = useDispatch();
-  const { posts,loading,error  } = useSelector((state) => state.post);
- const userId = useSelector(state => state.auth?.userInfo?.userId);
+  const { posts, loading, error } = useSelector((state) => state.post);
+  const userId = useSelector((state) => state.auth?.userInfo?.userId);
 
- useEffect(() => {
-  if (userId) {
-    dispatch(showFeed(userId));
-  }
-}, [userId]);
+  useEffect(() => {
+    if (userId) {
+      dispatch(showFeed(userId));
+    }
+  }, [userId]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 h-screen flex flex-col">
@@ -29,16 +29,22 @@ function Feed() {
         )}
       </div>
 
-
       {/* Posts Section */}
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        
         {loading ? (
-          <SkeletonFeed /> 
+          <SkeletonFeed />
         ) : (
-          <PostsList posts={posts} loading={loading} error={error} isFeed={true} />
+          <PostsList
+            posts={posts.filter(
+              (post) =>
+                post.status === "ACTIVE" ||
+                (post.status === "PENDING" && post.userId === userId),
+            )}
+            loading={loading}
+            error={error}
+            isFeed={true}
+          />
         )}
-
       </div>
     </div>
   );

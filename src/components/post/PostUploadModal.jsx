@@ -12,7 +12,7 @@ import {
 import { FiSend } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { Firebase } from "../../firebase/config";
-import { createPost } from "../../redux/slices/PostSlice";
+import { createPost, showFeed } from "../../redux/slices/PostSlice";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import ImageCropper from "../../components/ImageUpload/ImageCropper";
@@ -79,7 +79,7 @@ export default function PostUploadModal({ isOpen = false, onClose }) {
     // limit to maximum 3 total images (already uploaded + new ones)
     const available = Math.max(
       0,
-      3 - imgUrls.length - selectedFiles.length - imgAfterCrop.length
+      3 - imgUrls.length - selectedFiles.length - imgAfterCrop.length,
     );
     if (available <= 0) {
       toast.warn("You can only upload up to 3 images");
@@ -163,7 +163,7 @@ export default function PostUploadModal({ isOpen = false, onClose }) {
         0,
         0,
         px.width,
-        px.height
+        px.height,
       );
       const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
 
@@ -233,8 +233,19 @@ export default function PostUploadModal({ isOpen = false, onClose }) {
     try {
       const payload = { content: text.trim(), postImages: imgUrls.slice(0, 3) };
       const result = await dispatch(createPost(payload)).unwrap();
-      toast.success("Post Created Successfully");
+
+      if (result.status === "PENDING") {
+        toast.info("Post submitted for AI review");
+      } else {
+        toast.success("Post Created Successfully");
+      }
+
       closeModal();
+
+      // Refresh feed after AI likely finished
+      setTimeout(() => {
+        dispatch(showFeed(userId));
+      }, 3000);
     } catch (err) {
       console.error("createPost error", err);
       toast.error("Failed to create post");
