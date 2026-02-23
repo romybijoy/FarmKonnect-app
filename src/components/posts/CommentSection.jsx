@@ -1,147 +1,86 @@
-// CommentSection.jsx
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { fetchComments, addComment } from "../../redux/slices/CommentSlice";
+import {
+  fetchComments,
+  addComment,
+  resetComments,
+} from "../../redux/slices/CommentSlice";
+import Comment from "./Comment";
 
 export default function CommentSection({ postId }) {
+  const EMPTY_ARRAY = [];
   const dispatch = useDispatch();
-  const { items: comments } = useSelector((state) => state.comments);
+  const comments = useSelector(
+    (state) => state.comments.commentsByPost[postId]?.items ?? EMPTY_ARRAY,
+  );
+  const loading = useSelector((state) => state.comments.loading);
   const [newComment, setNewComment] = useState("");
-
-  const userData = JSON.parse(localStorage.getItem("myInfo"));
+  const userData = JSON.parse(localStorage.getItem("myInfo") || "{}");
 
   useEffect(() => {
-    dispatch(fetchComments(postId));
-  }, [dispatch, postId]);
+    dispatch(resetComments(postId));
+    dispatch(fetchComments({ postId, page: 0 }));
+  }, [postId]);
 
   const handleAddComment = () => {
-    if (newComment.trim()) {
-      dispatch(
-        addComment({ postId, userId: userData.id, content: newComment })
-      );
-      setNewComment("");
-    }
+    if (!newComment.trim()) return;
+
+    dispatch(
+      addComment({
+        postId,
+        content: newComment.trim(),
+      }),
+    );
+
+    setNewComment("");
   };
 
   return (
-    <div className="mt-4 bg-white rounded-lg border border-gray-200">
-      {/* Add Comment Box */}
-      <div className="flex items-center gap-2 p-3 border-b">
+    <div className="mt-3 sm:mt-4 bg-white rounded-xl border border-gray-200 shadow-sm w-full">
+      {/* Add Comment */}
+      <div className="flex items-start gap-3 p-3 sm:p-4 border-b">
         <img
           src={userData?.image || "/profile.png"}
           alt="profile"
-          className="w-9 h-9 rounded-full object-cover"
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border mt-1"
         />
-        <input
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
-          className="border p-2 flex-1 rounded-full text-sm"
-        />
-        <button
-          onClick={handleAddComment}
-          className="ml-2 text-blue-600 font-semibold"
-        >
-          Comment
-        </button>
-      </div>
 
-      {/* Comment List */}
-      <div className="divide-y">
-        {comments.map((c) => (
-          <Comment key={c.id} comment={c} postId={postId} />
-        ))}
-      </div>
-    </div>
-  );
-}
+        <div className="flex flex-1 items-center gap-2">
+          <input
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+            placeholder="Write a comment..."
+            className="flex-1 bg-gray-100 px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
 
-function Comment({ comment, postId }) {
-  const dispatch = useDispatch();
-  const [reply, setReply] = useState("");
-  const [showReplyBox, setShowReplyBox] = useState(false);
-  const userData = JSON.parse(localStorage.getItem("myInfo"));
-
-  const handleReply = () => {
-    if (reply.trim()) {
-      dispatch(
-        addComment({
-          postId,
-          userId: userData.id,
-          content: reply,
-          parentId: comment.id,
-        })
-      );
-      setReply("");
-      setShowReplyBox(false);
-    }
-  };
-
-  return (
-    <div className="p-3">
-      {/* Main Comment */}
-      <div className="flex items-start gap-3">
-        <img
-          src={comment?.profileImage || "/profile.png"}
-          alt=""
-          className="w-9 h-9 rounded-full object-cover"
-        />
-        <div className="flex-1">
-          <div className="bg-gray-100 rounded-lg p-2">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm">{comment.userName}</span>
-              <span className="text-gray-500 text-xs">
-                {new Date(comment.createdAt).toLocaleString()}
-              </span>
-            </div>
-            <p className="text-sm mt-1">{comment.content}</p>
-          </div>
-          {/* Actions */}
-          <div className="flex gap-4 text-xs text-gray-600 mt-1 ml-1">
-            {/* <button className="hover:underline">Like</button> */}
-            <button onClick={() => setShowReplyBox(!showReplyBox)}>
-              Reply
-            </button>
-          </div>
-
-          {/* Reply Box */}
-          {showReplyBox && (
-            <div className="flex items-center gap-2 mt-2 ml-6">
-              <input
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-                placeholder="Write a reply..."
-                className="border p-1 flex-1 rounded-full text-sm"
-              />
-              <button
-                onClick={handleReply}
-                className="text-blue-600 font-semibold text-xs"
-              >
-                Reply
-              </button>
-            </div>
-          )}
-
-          {/* Replies */}
-          {comment.replies?.map((r) => (
-            <div key={r.id} className="flex items-start gap-2 mt-3 ml-6">
-              <img
-                src={r.user?.profileImage || "/profile.png"}
-                alt=""
-                className="w-7 h-7 rounded-full object-cover"
-              />
-              <div className="bg-gray-100 rounded-lg p-2 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm">{r.user?.name}</span>
-                  <span className="text-gray-500 text-xs">
-                    {new Date(r.createdAt).toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm mt-1">{r.content}</p>
-              </div>
-            </div>
-          ))}
+          <button
+            onClick={handleAddComment}
+            disabled={!newComment.trim()}
+            className={`text-sm font-semibold px-4 py-2 rounded-full transition ${
+              newComment.trim()
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
+          >
+            Post
+          </button>
         </div>
+      </div>
+
+      {/* Comments List */}
+      <div className="divide-y">
+        {loading ? (
+          <p className="p-4 text-sm text-gray-500">Loading comments...</p>
+        ) : comments?.length === 0 ? (
+          <p className="p-4 text-sm text-gray-500">
+            No comments yet. Be the first one!
+          </p>
+        ) : (
+          comments.map((comment) => (
+            <Comment key={comment.id} comment={comment} postId={postId} />
+          ))
+        )}
       </div>
     </div>
   );
