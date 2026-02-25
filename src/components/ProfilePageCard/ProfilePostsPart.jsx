@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { AiOutlineTable } from "react-icons/ai";
 import { BiBookmark } from "react-icons/bi";
 import { RiUserFollowLine, RiUserAddLine } from "react-icons/ri";
+import { BiRevision } from "react-icons/bi";
 import { useSelector } from "react-redux";
 
 import Followers from "../profileTabs/followers/Followers";
 import Following from "../profileTabs/following/Following";
 import SavedPosts from "../posts/SavedPosts";
 import PostsList from "../posts/PostsList";
+import UserAppealsPage from "./UserAppealsPage";
 
 const ProfilePostsPart = ({ user, post }) => {
   const [activeTab, setActiveTab] = useState("Post");
@@ -46,6 +48,13 @@ const ProfilePostsPart = ({ user, post }) => {
           <NoAccess />
         );
 
+        case "Appeals":
+        return isOwnProfile ? (
+          <UserAppealsPage userId={loggedInUserId} />
+        ) : (
+          <NoAccess />
+        );
+
       default:
         return null;
     }
@@ -58,6 +67,9 @@ const ProfilePostsPart = ({ user, post }) => {
     ...(isOwnProfile
       ? [{ tab: "Saved Posts", icon: <BiBookmark /> }]
       : []),
+      ...(isOwnProfile
+      ? [{ tab: "Appeals", icon: <BiRevision /> }]
+      : [])
   ];
 
   return (

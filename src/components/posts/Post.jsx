@@ -19,6 +19,7 @@ import {
   deletePost,
 } from "../../redux/slices/PostSlice";
 import { fetchCommentCount } from "../../redux/slices/CommentSlice";
+import { createAppeal, fetchUserAppeals } from "../../redux/slices/AppealSlice";
 import CommentSection from "./CommentSection";
 
 import { toast } from "react-toastify";
@@ -70,6 +71,11 @@ function Post({ post }) {
   const [currentCropImage, setCurrentCropImage] = useState(null); // string (URL)
   const [selectedFiles, setSelectedFiles] = useState([]); // { name, dataUrl }
   const [imgAfterCrop, setImgAfterCrop] = useState([]); // previews
+
+  const [appealModalOpen, setAppealModalOpen] = useState(false);
+  const [appealReason, setAppealReason] = useState("");
+  const [appealSubmitting, setAppealSubmitting] = useState(false);
+
   const commentCount = useSelector(
     (state) => state.comments.counts[post.id] || 0,
   );
@@ -77,6 +83,11 @@ function Post({ post }) {
   const likeData = useSelector((state) => state.post.likesByPostId[post?.id]);
   const saveData = useSelector((state) => state.post.savedByPostId[post?.id]);
 
+  const existingAppeal = useSelector((state) =>
+    state.appeals.items.find(
+      (a) => String(a.postId) === String(post.id) && a.status === "PENDING",
+    ),
+  );
   const isLiked = likeData?.liked || false;
   const likeCount = likeData?.likeCount || 0;
   const isSaved = saveData?.saved || false;
@@ -106,6 +117,11 @@ function Post({ post }) {
     dispatch(fetchSaveCount(post.id));
     dispatch(fetchCommentCount(post.id));
   }, [dispatch, post.id, userId]);
+
+
+  useEffect(() => {
+      dispatch(fetchUserAppeals({userId}));
+    }, [dispatch, userId]);
 
   // ---------- Helpers ----------
   const formatDate = (dateString) => {
@@ -387,6 +403,27 @@ function Post({ post }) {
       }
     });
 
+  const submitAppeal = async () => {
+    try {
+      setAppealSubmitting(true);
+
+      await dispatch(
+        createAppeal({
+          userId: userId,
+          postId: post.id,
+          reason: appealReason,
+        }),
+      ).unwrap();
+      toast.success("Appeal submitted successfully");
+      setAppealModalOpen(false);
+      setAppealReason("");
+    } catch (err) {
+      toast.error("Failed to submit appeal");
+    } finally {
+      setAppealSubmitting(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md p-4 mb-6">
       {/* ---------- Header ---------- */}
@@ -485,7 +522,6 @@ function Post({ post }) {
           )}
         </div>
       </div>
-
       {/* ---------- AI Moderation Status ---------- */}
       {post.status === "PENDING" && isOwner && (
         <div className="mt-3 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
@@ -499,7 +535,6 @@ function Post({ post }) {
           </div>
         </div>
       )}
-
       {post.status === "REJECTED" && isOwner && (
         <div className="mt-3 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
           <div className="font-semibold mb-1">
@@ -510,7 +545,57 @@ function Post({ post }) {
           </div>
         </div>
       )}
+      {post.status === "REMOVED" && isOwner && (
+        <div className="mt-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="font-semibold mb-1 flex items-center gap-2">
+            🚫 Post removed
+          </div>
 
+          <div className="text-xs text-red-600 mb-2">
+            This post was removed by our moderation team.
+          </div>
+
+          <div className="text-xs opacity-90">
+            <span className="font-medium">Reason:</span>{" "}
+            {post.moderationReason ||
+              "Content does not meet community guidelines."}
+          </div>
+
+          <div className="mt-3 text-xs text-gray-600">
+            If you believe this was a mistake, you can request a review.
+          </div>
+
+          {/* Appeal Button */}
+          <div className="mt-3">
+            {!existingAppeal ? (
+              <button
+                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg 
+                 hover:bg-blue-700 transition duration-200 shadow-sm"
+                onClick={() => setAppealModalOpen(true)}
+              >
+                Request Review
+              </button>
+            ) : (
+              <div
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm 
+                    bg-yellow-100 text-yellow-800 rounded-lg border border-yellow-200"
+              >
+                ⏳ Under Review
+              </div>
+            )}
+          </div>
+
+          {existingAppeal && (
+            <div className="text-xs text-yellow-600 mt-1">
+              Your appeal is currently under review.
+            </div>
+          )}
+        </div>
+      )}
+      {/* If appeal already exists */}
+      {post.appealStatus === "PENDING" && (
+        <div className="mt-2 text-xs text-yellow-700">Appeal under review</div>
+      )}
       {/* ---------- Content ---------- */}
       <div className="mt-3 text-sm text-gray-700">
         {expanded ? content : previewText}
@@ -524,7 +609,6 @@ function Post({ post }) {
         )}
       </div>
       {/* ---------------- Images ---------------- */}
-
       {images.length > 0 && (
         <div className="relative rounded-xl overflow-hidden">
           {/* ---------- Status Badge ---------- */}
@@ -550,17 +634,18 @@ function Post({ post }) {
           <div
             className={
               post.status === "REJECTED" && isOwner
-                ? "grayscale opacity-80 transition-all duration-300"
+                ? "grayscale opacity-80"
                 : post.status === "PENDING" && isOwner
-                  ? "opacity-70 transition-all duration-300"
-                  : "transition-all duration-300"
+                  ? "opacity-70"
+                  : post.status === "REMOVED" && isOwner
+                    ? "grayscale opacity-60"
+                    : ""
             }
           >
             <PostImagesGrid images={images} />
           </div>
         </div>
       )}
-
       {/* ---------- Stats ---------- */}
       <div className="flex justify-between text-xs text-gray-500 mt-3">
         <span>{likeCount} likes</span>
@@ -569,9 +654,7 @@ function Post({ post }) {
           {saveCount ?? 0} {saveCount === 1 ? "save" : "saves"}
         </span>
       </div>
-
       <hr className="my-3" />
-
       {/* ---------- Actions ---------- */}
       <div className="flex justify-between text-sm font-medium">
         <button
@@ -638,10 +721,8 @@ function Post({ post }) {
           Share
         </button>
       </div>
-
       {/* ---------- Comments ---------- */}
       {showComments && <CommentSection postId={post.id} />}
-
       {/* --- Repost View ---  */}
       {post.repost && post.originalPostId && (
         <div className="border border-gray-200 rounded-lg bg-gray-50 mt-4 p-3">
@@ -677,7 +758,6 @@ function Post({ post }) {
           </div>
         </div>
       )}
-
       {/* ---------------- REPORT MODAL ---------------- */}
       {reportModalOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-50">
@@ -734,7 +814,6 @@ function Post({ post }) {
           </div>
         </div>
       )}
-
       {/* ---------------- EDIT POST MODAL ---------------- */}
       <Modal
         show={editOpen}
@@ -799,6 +878,41 @@ function Post({ post }) {
           </Button>
         </Modal.Footer>
       </Modal>
+      {/* Appeal Modal */}
+      {appealModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg w-full max-w-md p-5 shadow-lg">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold">Submit Appeal</h3>
+              <button onClick={() => setAppealModalOpen(false)}>&times;</button>
+            </div>
+
+            <textarea
+              placeholder="Explain why your post should be restored..."
+              value={appealReason}
+              onChange={(e) => setAppealReason(e.target.value)}
+              className="w-full border rounded p-2 mb-3 min-h-[100px]"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setAppealModalOpen(false)}
+                disabled={appealSubmitting}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={submitAppeal}
+                disabled={appealSubmitting}
+                className="bg-blue-600 text-white px-4 py-1 rounded"
+              >
+                {appealSubmitting ? "Submitting..." : "Submit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Cropper */}
       {currentCropImage && (
         <ImageCropper

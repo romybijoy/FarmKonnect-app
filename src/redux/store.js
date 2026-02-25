@@ -12,6 +12,7 @@ import ReactionsSlice from "./slices/ReactionsSlice";
 import { ApiSlice } from "./slices/ApiSlice";
 import CommentSlice from "./slices/CommentSlice"
 import suggestionReducer from "./slices/SuggestionSlice";
+import AppealSlice from "./slices/AppealSlice";
 
 const store = configureStore({
   reducer: {
@@ -29,6 +30,7 @@ const store = configureStore({
     reactions: ReactionsSlice,
     comments: CommentSlice,
     suggestions: suggestionReducer,
+    appeals:AppealSlice
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }).concat(
