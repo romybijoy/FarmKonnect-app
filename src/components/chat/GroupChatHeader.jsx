@@ -13,7 +13,6 @@ const GroupChatHeader = ({ groupInfo }) => {
 
   const typingUser = typingByEmail?.[groupInfo?.id];
 
-console.log(groupInfo);
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -25,7 +24,6 @@ console.log(groupInfo);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  console.log(groupInfo);
   if (!groupInfo) return null;
 
   return (

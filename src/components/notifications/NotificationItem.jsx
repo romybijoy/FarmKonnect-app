@@ -1,5 +1,5 @@
 import React from "react";
-import moment from "moment";
+import { formatDistanceToNow } from "date-fns";
 
 const NotificationItem = ({ notification, onClick }) => {
   const { senderName, message, timestamp, read, senderProfilePic } =
@@ -23,7 +23,7 @@ const NotificationItem = ({ notification, onClick }) => {
             <span>{message.replace(senderName, "")}</span>
           </p>
           <p className="text-xs text-gray-400 mt-[2px]">
-            {moment(timestamp).fromNow()}
+            {formatDistanceToNow(new Date(timestamp), { addSuffix: true })}
           </p>
         </div>
       </div>
