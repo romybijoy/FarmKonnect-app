@@ -11,14 +11,14 @@ import { toast } from "react-toastify";
 export default function FollowButton({ viewerId, targetUserId }) {
   const dispatch = useDispatch();
   const isFollowing = useSelector(
-    (state) => state.follow.followStatus?.[targetUserId] ?? false
+    (state) => state.follow.followStatus?.[targetUserId] ?? false,
   );
 
   const loading = useSelector(
-    (state) => state.follow.loading?.[targetUserId] ?? false
+    (state) => state.follow.loading?.[targetUserId] ?? false,
   );
   const error = useSelector(
-    (state) => state.follow.error?.[targetUserId] ?? null
+    (state) => state.follow.error?.[targetUserId] ?? null,
   );
 
   useEffect(() => {
@@ -54,6 +54,7 @@ export default function FollowButton({ viewerId, targetUserId }) {
   return (
     <div>
       <Button
+        variant=""
         onClick={isFollowing ? handleUnfollow : handleFollow}
         disabled={loading}
         style={{ width: "100px" }}

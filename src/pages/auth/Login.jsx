@@ -21,6 +21,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const [validated, setValidated] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -166,19 +167,40 @@ const LoginScreen = () => {
                   </Form.Control.Feedback>
                 </Form.Group>
 
-                <Form.Group className="my-3" controlId="password">
+                <Form.Group
+                  className="my-3 position-relative"
+                  controlId="password"
+                >
                   <Form.Label>Password</Form.Label>
+
                   <Form.Control
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Enter password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     isInvalid={validated && password.length < 4}
-                  ></Form.Control>
+                  />
+
+                  {/* 👁 Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "10px",
+                      top: "38px",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {showPassword ? "🙈" : "👁"}
+                  </button>
+
                   <Form.Control.Feedback type="invalid">
-                    Password must be at least 8 characters and contain a digit,a
-                    lower-case, an upper-case letter, and a special character
+                    Password must be at least 8 characters and contain a digit,
+                    lower-case, upper-case letter, and special character
                   </Form.Control.Feedback>
                 </Form.Group>
 
