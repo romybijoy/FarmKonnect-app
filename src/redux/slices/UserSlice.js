@@ -34,7 +34,7 @@ export const createUser = createAsyncThunk(
       console.log(error.response.data);
       return rejectWithValue(error);
     }
-  }
+  },
 );
 
 //read action
@@ -50,7 +50,7 @@ export const showUser = createAsyncThunk(
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -65,7 +65,7 @@ export const showUser = createAsyncThunk(
         message: error.message || "Unexpected error",
       });
     }
-  }
+  },
 );
 
 //delete action
@@ -87,7 +87,7 @@ export const deleteUser = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error);
     }
-  }
+  },
 );
 
 export const updateUser = createAsyncThunk(
@@ -112,7 +112,7 @@ export const updateUser = createAsyncThunk(
     } catch (err) {
       return rejectWithValue({ message: err.message });
     }
-  }
+  },
 );
 
 //update action
@@ -141,7 +141,7 @@ export const fetchUserById = createAsyncThunk(
       // Handle network or parsing errors
       return rejectWithValue(error.message || "Unexpected error");
     }
-  }
+  },
 );
 
 export const getProf = createAsyncThunk(
@@ -161,51 +161,62 @@ export const getProf = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error);
     }
-  }
+  },
 );
 
 //verify OTP action
 export const verifyOTP = createAsyncThunk(
   "verifyOTP",
   async (data, { rejectWithValue }) => {
-    console.log("otp data", data);
-    const response = await fetch(`${ip}/auth/verify-account`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
     try {
+      const response = await fetch(`${ip}/auth/verify-account`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
       const result = await response.json();
+
+      if (!response.ok) {
+        return rejectWithValue(result.message || "OTP verification failed");
+      }
+
       return result;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue("Network error. Please try again.");
     }
-  }
+  },
 );
 
 //regenerate OTP action
 export const regenerateOTP = createAsyncThunk(
   "regenerateOTP",
   async (data, { rejectWithValue }) => {
-    console.log("updated data", data);
-    const response = await fetch(
-      `${ip}/auth/regenerate-otp?email=${data.email}&isUpdateEmail=${data.isUpdateEmail}&currentEmail=${data.currentEmail}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
     try {
+      const response = await fetch(
+        `${ip}/auth/regenerate-otp?email=${data.email}&isUpdateEmail=${data.isUpdateEmail}&currentEmail=${data.currentEmail}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       const result = await response.json();
+
+      console.log("STATUS:", response.status);
+      console.log("OK:", response.ok);
+
+      if (!response.ok) {
+        return rejectWithValue(result.message);
+      }
+
       return result;
     } catch (error) {
-      return rejectWithValue(error);
+      return rejectWithValue("Network error");
     }
   }
 );
@@ -222,7 +233,7 @@ export const forgotPassword = createAsyncThunk(
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       const result = await response.json();
@@ -236,7 +247,7 @@ export const forgotPassword = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || "Network error.");
     }
-  }
+  },
 );
 
 //set-password action
@@ -251,7 +262,7 @@ export const resetPassword = createAsyncThunk(
           headers: {
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       const result = await response.json();
@@ -259,7 +270,7 @@ export const resetPassword = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error);
     }
-  }
+  },
 );
 
 //block status
@@ -282,7 +293,7 @@ export const showBlockStatus = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error);
     }
-  }
+  },
 );
 
 export const checkEmailAvailability = createAsyncThunk(
@@ -290,14 +301,14 @@ export const checkEmailAvailability = createAsyncThunk(
   async (email, { rejectWithValue }) => {
     try {
       const res = await fetch(
-        `${ip}/validate-email?email=${encodeURIComponent(email)}`
+        `${ip}/validate-email?email=${encodeURIComponent(email)}`,
       );
       if (!res.ok) return rejectWithValue("Unable to check email");
       return await res.json(); // { valid: boolean, message: string }
     } catch (e) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 export const getUserByUsername = createAsyncThunk(
@@ -323,7 +334,7 @@ export const getUserByUsername = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message || "Something went wrong");
     }
-  }
+  },
 );
 
 export const userDetail = createSlice({
